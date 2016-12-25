@@ -11,6 +11,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Bindings", "Source\Bindings
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Editors", "Source\Editors\Editors.vbproj", "{332AA7A4-686D-4808-BA75-55D705118314}"
 EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Clientv2", "Source\Clientv2\Clientv2.vbproj", "{26112A16-00EC-4236-B230-09002C45D8AA}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Source\Bindings\Bindings.projitems*{332aa7a4-686d-4808-ba75-55d705118314}*SharedItemsImports = 4
@@ -35,6 +37,10 @@ Global
 		{332AA7A4-686D-4808-BA75-55D705118314}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{332AA7A4-686D-4808-BA75-55D705118314}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{332AA7A4-686D-4808-BA75-55D705118314}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26112A16-00EC-4236-B230-09002C45D8AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26112A16-00EC-4236-B230-09002C45D8AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26112A16-00EC-4236-B230-09002C45D8AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26112A16-00EC-4236-B230-09002C45D8AA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
