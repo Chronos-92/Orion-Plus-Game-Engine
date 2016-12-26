@@ -27,6 +27,15 @@ Public Class Window : Inherits Game
     Private Characters() As TextureRec
     Private Tilesets() As TextureRec
     Private Emotes() As TextureRec
+    Private Faces() As TextureRec
+    Private Fog() As TextureRec
+    Private Furniture() As TextureRec
+    Private Items() As TextureRec
+    Private Paperdolls() As TextureRec
+    Private Projectiles() As TextureRec
+    Private Resources() As TextureRec
+    Private Skillicons() As TextureRec
+
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
@@ -114,6 +123,14 @@ Public Class Window : Inherits Game
         InitGraphics(Path.Combine(Dir, "Characters"), Characters)
         InitGraphics(Path.Combine(Dir, "Animations"), Animations)
         InitGraphics(Path.Combine(Dir, "Emotes"), Emotes)
+        InitGraphics(Path.Combine(Dir, "Faces"), Faces)
+        InitGraphics(Path.Combine(Dir, "Fog"), Fog)
+        InitGraphics(Path.Combine(Dir, "Furniture"), Furniture)
+        InitGraphics(Path.Combine(Dir, "Items"), Items)
+        InitGraphics(Path.Combine(Dir, "Paperdolls"), Paperdolls)
+        InitGraphics(Path.Combine(Dir, "Projectiles"), Projectiles)
+        InitGraphics(Path.Combine(Dir, "Resources"), Resources)
+        InitGraphics(Path.Combine(Dir, "Skillicons"), Skillicons)
     End Sub
 
     Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
@@ -162,6 +179,14 @@ Public Class Window : Inherits Game
         UnloadGraphics(Characters)
         UnloadGraphics(Animations)
         UnloadGraphics(Emotes)
+        UnloadGraphics(Faces)
+        UnloadGraphics(Fog)
+        UnloadGraphics(Furniture)
+        UnloadGraphics(Items)
+        UnloadGraphics(Paperdolls)
+        UnloadGraphics(Projectiles)
+        UnloadGraphics(Resources)
+        UnloadGraphics(Skillicons)
     End Sub
 
     Private Sub UnloadGraphics(ByRef Array() As TextureRec)
