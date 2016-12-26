@@ -23,7 +23,10 @@ Public Class Window : Inherits Game
     Private AppLocation As String
 
     ' Textures
+    Private Animations() As TextureRec
+    Private Characters() As TextureRec
     Private Tilesets() As TextureRec
+    Private Emotes() As TextureRec
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
@@ -106,17 +109,21 @@ Public Class Window : Inherits Game
 #Region "Init Data"
     Private Sub InitTextures()
         Dim Dir = Path.Combine(AppLocation, "Data Files", "Graphics")
-        InitTilesets(Dir)
+        ' InitTilesets(Dir)
+        InitGraphics(Path.Combine(Dir, "Tilesets"), Tilesets)
+        InitGraphics(Path.Combine(Dir, "Characters"), Characters)
+        InitGraphics(Path.Combine(Dir, "Animations"), Animations)
+        InitGraphics(Path.Combine(Dir, "Emotes"), Emotes)
     End Sub
 
-    Private Sub InitTilesets(ByVal Dir As String)
+    Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
         Dim IsLooking As Boolean = True
         Dim Files As New List(Of String)
         Dim Id = 1
 
         ' Look for our files.
         While IsLooking
-            Dim Fname = Path.Combine(Dir, "Tilesets", String.Format("{0}{1}", Id, GFX_EXT))
+            Dim Fname = Path.Combine(Dir, String.Format("{0}{1}", Id, GFX_EXT))
             If (File.Exists(Fname)) Then
                 Files.Add(Fname)
                 Id += 1
@@ -126,13 +133,12 @@ Public Class Window : Inherits Game
         End While
 
         ' Redim our array and add filenames to it.
-        ReDim Tilesets(0 To Files.Count)
+        ReDim Array(0 To Files.Count)
         For i = 1 To Files.Count
-            Tilesets(i) = New TextureRec()
-            Tilesets(i).FileName = Files(i - 1)
-            Tilesets(i).LastAccess = DateTime.MinValue
+            Array(i) = New TextureRec()
+            Array(i).FileName = Files(i - 1)
+            Array(i).LastAccess = DateTime.MinValue
         Next
-
     End Sub
 #End Region
 
@@ -152,11 +158,30 @@ Public Class Window : Inherits Game
 
 #Region "Unload Data"
     Private Sub UnloadTextures()
-        UnloadTilesets()
+        UnloadGraphics(Tilesets)
+        UnloadGraphics(Characters)
+        UnloadGraphics(Animations)
+        UnloadGraphics(Emotes)
     End Sub
 
-    Private Sub UnloadTilesets()
-        For Each T In Tilesets
+    Private Sub UnloadGraphics(ByRef Array() As TextureRec)
+        For Each T In Array
+            If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
+                T.Texture = Nothing
+                T.LastAccess = DateTime.MinValue
+            End If
+        Next
+    End Sub
+    Private Sub UnloadCharacters()
+        For Each T In Characters
+            If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
+                T.Texture = Nothing
+                T.LastAccess = DateTime.MinValue
+            End If
+        Next
+    End Sub
+    Private Sub UnloadAnimations()
+        For Each T In Animations
             If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
                 T.Texture = Nothing
                 T.LastAccess = DateTime.MinValue
