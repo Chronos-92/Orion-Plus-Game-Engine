@@ -3,6 +3,14 @@ Imports System.Windows.Forms
 
 Public Class frmMenu
     Inherits Form
+
+    Public Sub New()
+
+        ' This call is required by the designer.
+        InitializeComponent()
+
+        ' Add any initialization after the InitializeComponent() call.
+    End Sub
 #Region "Form Functions"
     ''' <summary>
     ''' clean up and close the game.
@@ -38,6 +46,9 @@ Public Class frmMenu
 
         pnlCharSelect.Top = pnlMainMenu.Top
         pnlCharSelect.Left = pnlMainMenu.Left
+
+        Dim w As New Window(800, 600, False)
+        w.Run()
 
         If started = False Then Call startup()
 
