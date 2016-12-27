@@ -38,7 +38,7 @@ Public Class Window : Inherits Game
     Private Skillicons() As TextureRec
 
     ' Fonts
-    Private GameFont As SpriteFont
+    Private GameFonts As Dictionary(Of Integer, SpriteFont)
 
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
@@ -69,6 +69,9 @@ Public Class Window : Inherits Game
         ' Set our application location.
         AppLocation = Path.GetDirectoryName(Application.ExecutablePath)
 
+        ' Set our content location.
+        Content.RootDirectory = Path.Combine(AppLocation, DIR_ROOT)
+
         ' Initialize all our rendering arrays and variables.
         RenderOffset = New Vector2(0, 0)
         InitTextures()
@@ -80,13 +83,15 @@ Public Class Window : Inherits Game
         ' Create our MonoGame objects.
         View = New SpriteBatch(GraphicsDevice)
 
-        ' Create our font
-        GameFont = Content.Load(Of SpriteFont)(FONT_NAME)
+        ' Load all our font sizes.
+        LoadFonts()
 
     End Sub
 
     Protected Overrides Sub UnloadContent()
         ' TODO: Unload all our textures since we don't use Content.Load
+
+        MyBase.UnloadContent()      ' Do not touch!
     End Sub
 
     Protected Overrides Sub Update(Time As GameTime)
@@ -130,13 +135,13 @@ Public Class Window : Inherits Game
             For Y = 0 To Map.MaxY
 
                 ' Players
-                For I = 1 To MAX_PLAYERS
-                    If IsPlaying(I) And GetPlayerMap(I) = GetPlayerMap(MyIndex) Then
-                        If Player(I).Y = Y Then
-                            DrawPlayer(I)
+                For i = 1 To MAX_PLAYERS
+                    If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) Then
+                        If Player(i).Y = Y Then
+                            DrawPlayer(i)
                         End If
-                        If PetAlive(I) Then
-                            If Player(I).Pet.Y = Y Then
+                        If PetAlive(i) Then
+                            If Player(i).Pet.Y = Y Then
                                 ' DrawPet(I)
                             End If
                         End If
@@ -148,6 +153,12 @@ Public Class Window : Inherits Game
             ' Draw our top layers.
             For Layer = MapLayer.Fringe To MapLayer.Fringe2
                 DrawMapLayer(Layer)
+            Next
+
+            For i = 1 To MAX_PLAYERS
+                If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) Then
+                    DrawPlayerName(i, 10)
+                End If
             Next
 
         End If
@@ -216,6 +227,26 @@ Public Class Window : Inherits Game
 
         ' It's been accessed, so let's set this straight.
         Texture.LastAccess = DateTime.Now
+    End Sub
+
+    Private Sub LoadFonts()
+        ' Create a brand new instance of our fonts dictionary.
+        GameFonts = New Dictionary(Of Integer, SpriteFont)()
+
+        ' Load all our fonts.
+        LoadFont(8)
+        LoadFont(10)
+        LoadFont(12)
+        LoadFont(14)
+        LoadFont(16)
+        LoadFont(18)
+        LoadFont(20)
+        LoadFont(22)
+        LoadFont(24)
+        LoadFont(26)
+    End Sub
+    Private Sub LoadFont(ByVal Size As Integer)
+        GameFonts.Add(Size, Content.Load(Of SpriteFont)(Path.Combine(DIR_GRAPHICS, DIR_FONTS, Size)))
     End Sub
 #End Region
 
@@ -372,7 +403,7 @@ Public Class Window : Inherits Game
         ' render the actual sprite
         RenderTexture(Characters(Spritenum), New Vector2(X, Y), Source)
     End Sub
-    Private Sub DrawPlayerName(ByVal Index As Integer)
+    Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
         Dim TextY As Integer
         Dim Name As String
@@ -401,7 +432,7 @@ Public Class Window : Inherits Game
         ' Calculate where to put the player name.
         Name = GetPlayerName(Index).Trim()
         TextX = GetPlayerX(Index) * PIC_X + Player(Index).XOffset + (PIC_X \ 2)
-        TextX = TextX - (GameFont.MeasureString(Name).X / 2)
+        TextX = TextX - (GameFonts(Size).MeasureString(Name).X / 2)
         If GetPlayerSprite(Index) < 1 Or GetPlayerSprite(Index) > NumCharacters Then
             TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - 16
         Else
@@ -409,7 +440,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw name
-        ' Call DrawText(TextX, TextY, Name, Color, BackColor, GameWindow)
+        Call DrawText(Name, Size, New Vector2(TextX, TextY), Color, BackColor)
     End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
@@ -424,9 +455,15 @@ Public Class Window : Inherits Game
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
     End Sub
 
-    Private Sub DrawText(ByVal Text As String, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color)
+    Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color)
         ' Draw our background text.
-        ' View.DrawString(GameFont.)
+        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y - 1), BackColor)
+        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y + 1), BackColor)
+        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y - 1), BackColor)
+        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y + 1), BackColor)
+
+        ' Draw our foreground text.
+        View.DrawString(GameFonts(Size), Text, Location, ForeColor)
     End Sub
 #End Region
 
