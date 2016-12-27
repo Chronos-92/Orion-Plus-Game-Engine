@@ -196,6 +196,9 @@ Module ClientDataBase
         PutVar(FileName, "Options", "ScreenSize", Str(Options.ScreenSize))
         PutVar(FileName, "Options", "HighEnd", Str(Options.HighEnd))
         PutVar(FileName, "Options", "ShowNpcBar", Str(Options.ShowNpcBar))
+        PutVar(FileName, "Options", "Fullscreen", Options.Fullscreen.ToString())
+        PutVar(FileName, "Options", "ResolutionX", Options.ResolutionX.ToString())
+        PutVar(FileName, "Options", "ResolutionY", Options.ResolutionY.ToString())
     End Sub
 
     Public Sub LoadOptions()
@@ -216,6 +219,9 @@ Module ClientDataBase
             Options.ScreenSize = 0
             Options.HighEnd = 0
             Options.ShowNpcBar = 0
+            Options.Fullscreen = False
+            Options.ResolutionX = 800
+            Options.ResolutionY = 600
             SaveOptions()
         Else
             Options.Username = Getvar(FileName, "Options", "Username")
@@ -234,6 +240,9 @@ Module ClientDataBase
             Options.ScreenSize = Getvar(FileName, "Options", "ScreenSize")
             Options.HighEnd = Val(Getvar(FileName, "Options", "HighEnd"))
             Options.ShowNpcBar = Val(Getvar(FileName, "Options", "ShowNpcBar"))
+            Options.Fullscreen = Boolean.Parse(Getvar(FileName, "Options", "Fullscreen"))
+            Options.ResolutionX = Integer.Parse(Getvar(FileName, "Options", "ResolutionX"))
+            Options.ResolutionY = Integer.Parse(Getvar(FileName, "Options", "ResolutionY"))
         End If
 
         ' show in GUI

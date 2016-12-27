@@ -18,6 +18,7 @@ Public Class Window : Inherits Game
 
     ' Logic Variables.
     Private HasBeenResized As Boolean
+    Private RenderOffset As Vector2
 
     ' Location Variables
     Private AppLocation As String
@@ -65,7 +66,8 @@ Public Class Window : Inherits Game
         ' Set our application location.
         AppLocation = Path.GetDirectoryName(Application.ExecutablePath)
 
-        ' Initialize all our rendering arrays.
+        ' Initialize all our rendering arrays and variables.
+        RenderOffset = New Vector2(0, 0)
         InitTextures()
 
         MyBase.Initialize()     ' Do not touch
@@ -84,7 +86,8 @@ Public Class Window : Inherits Game
 
     Protected Overrides Sub Update(Time As GameTime)
 
-        ' TODO: Handle logic here.
+        ' Update our camera position.
+        UpdateCameraOffset()
 
         ' Unload all our unused textures.
         UnloadTextures()
@@ -104,7 +107,19 @@ Public Class Window : Inherits Game
         View.Begin()
 
         ' TODO: Render Graphics
-        RenderTexture(Tilesets(1), New Vector2(0, 0), New Rectangle(0, 0, 32, 32))
+        If Not GettingMap Then
+
+            ' Draw our bottom layers.
+            For Layer = MapLayer.Ground To MapLayer.Mask2
+                DrawMapLayer(Layer)
+            Next
+
+            ' Draw our top layers.
+            For Layer = MapLayer.Fringe To MapLayer.Fringe2
+                DrawMapLayer(Layer)
+            Next
+
+        End If
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
@@ -216,6 +231,15 @@ Public Class Window : Inherits Game
 #End Region
 
 #Region "Render Data"
+    Private Sub DrawMapLayer(ByVal Layer As Integer)
+        For X = 0 To Map.MaxX
+            For Y = 0 To Map.MaxY
+                Dim Tile = Map.Tile(X, Y).Layer(Layer)
+                RenderTexture(Tilesets(Tile.Tileset), New Vector2(X * PIC_X, Y * PIC_Y), New Rectangle(New Point(Tile.X, Tile.Y), New Point(Tile.X + PIC_X, Tile.Y + PIC_Y)))
+            Next
+        Next
+    End Sub
+
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
         ' First make sure our texture exists.
         LoadTexture(Texture)
@@ -223,6 +247,36 @@ Public Class Window : Inherits Game
         ' Draw to screen
         View.Draw(Texture.Texture, Destination, Source, New Color(255, 255, 255, 255))
     End Sub
+    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle, ByVal ColorMask As Color)
+        ' First make sure our texture exists.
+        LoadTexture(Texture)
+
+        ' Draw to screen
+        View.Draw(Texture.Texture, Destination, Source, ColorMask)
+    End Sub
+#End Region
+
+#Region "Logic Updates"
+
+    Private Sub UpdateCameraOffset()
+        Dim TilesX = (Window.ClientBounds.Width / PIC_X) + 1
+        Dim TilesY = (Window.ClientBounds.Height / PIC_Y) + 1
+
+        ' If we can display more than we need set offset to center.
+        If TilesX > Map.MaxX Then
+            RenderOffset.X = (Window.ClientBounds.Width / 2) - ((Map.MaxX * PIC_X) / 2)
+        Else
+            RenderOffset.X = (Player(MyIndex).X * PIC_X) - (Map.MaxX * PIC_X)
+        End If
+
+        ' If we can display more than we need set offset to center.
+        If TilesY > Map.MaxY Then
+            RenderOffset.Y = (Window.ClientBounds.Height / 2) - ((Map.MaxY * PIC_Y) / 2)
+        Else
+            RenderOffset.Y = (Player(MyIndex).Y * PIC_Y) - (Map.MaxY * PIC_Y)
+        End If
+    End Sub
+
 #End Region
 
 End Class

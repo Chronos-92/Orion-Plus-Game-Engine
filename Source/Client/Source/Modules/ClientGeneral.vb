@@ -260,10 +260,13 @@ Module ClientGeneral
     End Function
 
     Sub GameInit()
-        pnlloadvisible = False
+        ' pnlloadvisible = False
 
         ' Set the focus
-        frmMainGame.picscreen.Focus()
+        ' frmMainGame.picscreen.Focus()
+
+        Dim w As New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
+        w.Run()
 
         'stop the song playing
         StopMusic()

@@ -59,6 +59,9 @@
         Dim ScreenSize As Byte
         Dim HighEnd As Byte
         Dim ShowNpcBar As Byte
+        Dim Fullscreen As Boolean
+        Dim ResolutionX As Integer
+        Dim ResolutionY As Integer
     End Structure
 
     Public Structure RECT

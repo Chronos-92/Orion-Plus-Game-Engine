@@ -47,9 +47,6 @@ Public Class frmMenu
         pnlCharSelect.Top = pnlMainMenu.Top
         pnlCharSelect.Left = pnlMainMenu.Left
 
-        Dim w As New Window(800, 600, False)
-        w.Run()
-
         If started = False Then Call startup()
 
         Connect()
