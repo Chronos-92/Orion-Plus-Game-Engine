@@ -59,6 +59,9 @@ Public Class Window : Inherits Game
         Device.IsFullScreen = Fullscreen
         Device.ApplyChanges()
 
+        ' Be cheeky and disable MonoGame from slowing down when it loses focus.
+        InactiveSleepTime = New TimeSpan(0)
+
         ' Allow the mouse to be visible.
         IsMouseVisible = True
 
@@ -73,7 +76,7 @@ Public Class Window : Inherits Game
         Content.RootDirectory = Path.Combine(AppLocation, DIR_ROOT)
 
         ' Initialize all our rendering arrays and variables.
-        RenderOffset = New Vector2(0, 0)
+        RenderOffset = New Vector2()
         InitTextures()
 
         MyBase.Initialize()     ' Do not touch
@@ -97,7 +100,7 @@ Public Class Window : Inherits Game
     Protected Overrides Sub Update(Time As GameTime)
 
         ' Update our camera position.
-        UpdateCameraOffset()
+        UpdateCamera()
 
         ' Unload all our unused textures.
         UnloadTextures()
@@ -278,12 +281,64 @@ Public Class Window : Inherits Game
 
 #Region "Render Data"
     Private Sub DrawMapLayer(ByVal Layer As Integer)
+        If GettingMap Then Exit Sub
+        If Map.Tile Is Nothing Then Exit Sub
+
         For X = 0 To Map.MaxX
             For Y = 0 To Map.MaxY
-                Dim Tile = Map.Tile(X, Y).Layer(Layer)
-                RenderTexture(Tilesets(Tile.Tileset), New Vector2(X * PIC_X, Y * PIC_Y), New Rectangle(New Point(Tile.X, Tile.Y), New Point(Tile.X + PIC_X, Tile.Y + PIC_Y)))
+                DrawMapTile(Layer, X, Y)
             Next
         Next
+    End Sub
+    Private Sub DrawMapTile(ByVal Layer As Integer, ByVal X As Integer, ByVal Y As Integer)
+        With Map.Tile(X, Y).Layer(Layer)
+            Select Case Autotile(X, Y).Layer(Layer).renderState
+                Case RENDER_STATE_NORMAL
+                    RenderTexture(Tilesets(Map.Tile(X, Y).Layer(Layer).Tileset), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), New Rectangle(Map.Tile(X, Y).Layer(Layer).X * PIC_X, Map.Tile(X, Y).Layer(Layer).Y * PIC_Y, PIC_X, PIC_Y))
+                Case RENDER_STATE_AUTOTILE
+                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y), 1, X, Y, 0, False)
+                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X) + 16, ConvertMapY(Y * PIC_Y), 2, X, Y, 0, False)
+                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y) + 16, 3, X, Y, 0, False)
+                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X) + 16, ConvertMapY(Y * PIC_Y) + 16, 4, X, Y, 0, False)
+            End Select
+        End With
+    End Sub
+    Public Sub DrawAutoTile(ByVal layerNum As Integer, ByVal destX As Integer, ByVal destY As Integer, ByVal quarterNum As Integer, ByVal X As Integer, ByVal Y As Integer, Optional forceFrame As Integer = 0, Optional strict As Boolean = True)
+        ' calculate the offset
+        If forceFrame > 0 Then
+            Select Case forceFrame - 1
+                Case 0
+                    WaterfallFrame = 1
+                Case 1
+                    WaterfallFrame = 2
+                Case 2
+                    WaterfallFrame = 0
+            End Select
+            ' animate autotiles
+            Select Case forceFrame - 1
+                Case 0
+                    AutoTileFrame = 1
+                Case 1
+                    AutoTileFrame = 2
+                Case 2
+                    AutoTileFrame = 0
+            End Select
+        End If
+
+        Dim YOffset = 0
+        Dim XOffset = 0
+        Select Case Map.Tile(X, Y).Layer(layerNum).AutoTile
+            Case AUTOTILE_WATERFALL
+                YOffset = (WaterfallFrame - 1) * 32
+            Case AUTOTILE_ANIM
+                XOffset = AutoTileFrame * 64
+            Case AUTOTILE_CLIFF
+                YOffset = -32
+        End Select
+
+        ' Draw the quarter
+        RenderTexture(Tilesets(Map.Tile(X, Y).Layer(layerNum).Tileset), New Vector2(destX, destY), New Rectangle(Autotile(X, Y).Layer(layerNum).srcX(quarterNum) + XOffset, Autotile(X, Y).Layer(layerNum).srcY(quarterNum) + YOffset, 16, 16))
+
     End Sub
     Private Sub DrawAnimation(ByVal Index As Integer, ByVal Layer As Integer)
         ' Clear our animation if we've nothing left to render.
@@ -344,7 +399,7 @@ Public Class Window : Inherits Game
                 Throw New NotImplementedException()
         End Select
 
-        RenderTexture(Animations(Tex), New Vector2(X, Y), Source)
+        RenderTexture(Animations(Tex), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
     End Sub
     Private Sub DrawPlayer(ByVal Index As Integer)
         ' Make sure our sprite is valid.
@@ -385,7 +440,10 @@ Public Class Window : Inherits Game
         End If
 
         ' render the actual sprite
-        RenderTexture(Characters(Spritenum), New Vector2(X, Y), Source)
+        RenderTexture(Characters(Spritenum), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
+    End Sub
+    Private Sub DrawMapNpc(ByVal Index As Integer)
+
     End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
@@ -425,7 +483,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw name
-        Call DrawText(Name, Size, New Vector2(TextX, TextY), Color, BackColor)
+        Call DrawText(Name, Size, New Vector2(ConvertMapX(TextX), ConvertMapY(TextY)), Color, BackColor)
     End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
@@ -454,10 +512,26 @@ Public Class Window : Inherits Game
 
 #Region "Logic Updates"
 
-    Private Sub UpdateCameraOffset()
+    Private Sub UpdateCamera()
 
+        If Device.PreferredBackBufferWidth > Map.MaxX * PIC_X Then
+            RenderOffset.X = (Device.PreferredBackBufferWidth - (Map.MaxX * PIC_X)) / 2 - 16
+        Else
+            RenderOffset.X = (Device.PreferredBackBufferWidth / 2) - ((Player(MyIndex).X * PIC_X) + Player(MyIndex).XOffset)
+        End If
+
+        If Device.PreferredBackBufferHeight > Map.MaxY * PIC_X Then
+            RenderOffset.Y = (Device.PreferredBackBufferHeight - (Map.MaxY * PIC_Y)) / 2
+        Else
+            RenderOffset.Y = (Device.PreferredBackBufferHeight / 2) - ((Player(MyIndex).Y * PIC_Y) + Player(MyIndex).YOffset)
+        End If
     End Sub
-
+    Private Function ConvertMapX(ByVal X As Integer) As Integer
+        ConvertMapX = X + RenderOffset.X
+    End Function
+    Private Function ConvertMapY(ByVal Y As Integer) As Integer
+        ConvertMapY = Y + RenderOffset.Y
+    End Function
 #End Region
 
 End Class
