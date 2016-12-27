@@ -319,8 +319,11 @@ Public Class Window : Inherits Game
                 End If
 
             Case TargetType.Pet
-                ' TODO: Render animations aimed at pets if nessecary.
-                Throw New NotImplementedException()
+                ' Is this player still on our map?
+                If GetPlayerMap(LockIndex) = GetPlayerMap(MyIndex) Then
+                    X = (Player(LockIndex).Pet.X * PIC_X) + 16 - (Width / 2) + Player(LockIndex).Pet.XOffset
+                    Y = (Player(LockIndex).Pet.Y * PIC_Y) + 16 - (Height / 2) + Player(LockIndex).Pet.YOffset
+                End If
 
             Case Else
                 Throw New NotImplementedException()
@@ -369,7 +372,7 @@ Public Class Window : Inherits Game
         ' render the actual sprite
         RenderTexture(Characters(Spritenum), New Vector2(X, Y), Source)
     End Sub
-    Public Sub DrawPlayerName(ByVal Index As Integer)
+    Private Sub DrawPlayerName(ByVal Index As Integer)
         Dim TextX As Integer
         Dim TextY As Integer
         Dim Name As String
@@ -379,20 +382,20 @@ Public Class Window : Inherits Game
         Dim BackColor As Color
         Select Case GetPlayerAccess(Index)
             Case 0
-                color = Color.Orange
-                backcolor = Color.Black
+                Color = Color.Orange
+                BackColor = Color.Black
             Case 1
-                color = Color.Black
-                backcolor = Color.White
+                Color = Color.Black
+                BackColor = Color.White
             Case 2
-                color = Color.Cyan
-                backcolor = Color.Black
+                Color = Color.Cyan
+                BackColor = Color.Black
             Case 3
-                color = Color.Green
-                backcolor = Color.Black
+                Color = Color.Green
+                BackColor = Color.Black
             Case 4
-                color = Color.Yellow
-                backcolor = Color.Black
+                Color = Color.Yellow
+                BackColor = Color.Black
         End Select
         If GetPlayerPK(Index) = 2 Then Color = Color.Red
         ' Calculate where to put the player name.
