@@ -37,6 +37,9 @@ Public Class Window : Inherits Game
     Private Resources() As TextureRec
     Private Skillicons() As TextureRec
 
+    ' Fonts
+    Private GameFont As SpriteFont
+
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
@@ -77,11 +80,13 @@ Public Class Window : Inherits Game
         ' Create our MonoGame objects.
         View = New SpriteBatch(GraphicsDevice)
 
-        ' TODO: Load our resources into memory. (Content.Load)
+        ' Create our font
+        GameFont = Content.Load(Of SpriteFont)(FONT_NAME)
+
     End Sub
 
     Protected Overrides Sub UnloadContent()
-
+        ' TODO: Unload all our textures since we don't use Content.Load
     End Sub
 
     Protected Overrides Sub Update(Time As GameTime)
@@ -364,6 +369,45 @@ Public Class Window : Inherits Game
         ' render the actual sprite
         RenderTexture(Characters(Spritenum), New Vector2(X, Y), Source)
     End Sub
+    Public Sub DrawPlayerName(ByVal Index As Integer)
+        Dim TextX As Integer
+        Dim TextY As Integer
+        Dim Name As String
+
+        ' Get player name color.
+        Dim Color As Color
+        Dim BackColor As Color
+        Select Case GetPlayerAccess(Index)
+            Case 0
+                color = Color.Orange
+                backcolor = Color.Black
+            Case 1
+                color = Color.Black
+                backcolor = Color.White
+            Case 2
+                color = Color.Cyan
+                backcolor = Color.Black
+            Case 3
+                color = Color.Green
+                backcolor = Color.Black
+            Case 4
+                color = Color.Yellow
+                backcolor = Color.Black
+        End Select
+        If GetPlayerPK(Index) = 2 Then Color = Color.Red
+        ' Calculate where to put the player name.
+        Name = GetPlayerName(Index).Trim()
+        TextX = GetPlayerX(Index) * PIC_X + Player(Index).XOffset + (PIC_X \ 2)
+        TextX = TextX - (GameFont.MeasureString(Name).X / 2)
+        If GetPlayerSprite(Index) < 1 Or GetPlayerSprite(Index) > NumCharacters Then
+            TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - 16
+        Else
+            TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - (CharacterGFXInfo(GetPlayerSprite(Index)).Height / 4) + 16
+        End If
+
+        ' Draw name
+        ' Call DrawText(TextX, TextY, Name, Color, BackColor, GameWindow)
+    End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
         RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
@@ -375,6 +419,11 @@ Public Class Window : Inherits Game
 
         ' Draw to screen
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
+    End Sub
+
+    Private Sub DrawText(ByVal Text As String, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color)
+        ' Draw our background text.
+        ' View.DrawString(GameFont.)
     End Sub
 #End Region
 
