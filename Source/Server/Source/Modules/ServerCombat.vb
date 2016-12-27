@@ -1295,7 +1295,9 @@ Public Module ServerCombat
                 Damage = 0
                 Exit Sub
             Else
+
                 Damage = Damage - ((Npc(npcnum).Stat(Stats.Spirit) * 2) + (Npc(npcnum).Level * 3))
+
                 ' * 1.5 if it's a crit!
                 If CanPlayerCriticalHit(Index) Then
                     Damage = Damage * 1.5
@@ -1306,7 +1308,6 @@ Public Module ServerCombat
 
             TempPlayer(Index).Target = mapnpcnum
             TempPlayer(Index).TargetType = TargetType.Npc
-            TempPlayer(Index).TargetZone = 0
             SendTarget(Index, mapnpcnum, TargetType.Npc)
 
             If Damage > 0 Then
@@ -1371,7 +1372,7 @@ Public Module ServerCombat
         SendTarget(Index, 0, TargetType.None)
 
         ' Hand out player experience
-        HandleNpcKillExperience(Index, MapNpcNum)
+        HandleNpcKillExperience(Index, MapNpc(MapNum).Npc(MapNpcNum).Num)
 
         ' Drop items if we can.
         DropNpcItems(MapNum, MapNpcNum)
@@ -1390,7 +1391,6 @@ Public Module ServerCombat
         ' Check if our dead NPC is targetted by another player and remove their targets.
         For Each p In TempPlayer.Where(Function(x, i) x.InGame AndAlso GetPlayerMap(i + 1) = MapNum AndAlso x.TargetType = TargetType.Npc AndAlso x.Target = MapNpcNum).Select(Function(x, i) i + 1).ToArray()
             TempPlayer(p).Target = 0
-            TempPlayer(p).TargetZone = 0
             TempPlayer(p).TargetType = TargetType.None
             SendTarget(p, 0, TargetType.None)
         Next
