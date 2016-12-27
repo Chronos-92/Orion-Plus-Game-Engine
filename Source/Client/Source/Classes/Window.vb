@@ -250,7 +250,7 @@ Public Class Window : Inherits Game
     End Sub
 #End Region
 
-#Region "Unload Data"
+#Region "Unloading Data"
     Private Sub UnloadTextures()
         UnloadGraphics(Tilesets)
         UnloadGraphics(Characters)
@@ -268,22 +268,6 @@ Public Class Window : Inherits Game
 
     Private Sub UnloadGraphics(ByRef Array() As TextureRec)
         For Each T In Array
-            If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
-                T.Texture = Nothing
-                T.LastAccess = DateTime.MinValue
-            End If
-        Next
-    End Sub
-    Private Sub UnloadCharacters()
-        For Each T In Characters
-            If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
-                T.Texture = Nothing
-                T.LastAccess = DateTime.MinValue
-            End If
-        Next
-    End Sub
-    Private Sub UnloadAnimations()
-        For Each T In Animations
             If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
                 T.Texture = Nothing
                 T.LastAccess = DateTime.MinValue
