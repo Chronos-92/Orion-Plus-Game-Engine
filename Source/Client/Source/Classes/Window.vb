@@ -359,7 +359,7 @@ Public Class Window : Inherits Game
         Dim FrameRow As Integer
         Dim AttackSpeed = 1000
         If GetPlayerEquipment(Index, EquipmentType.Weapon) > 0 Then AttackSpeed = Item(GetPlayerEquipment(Index, EquipmentType.Weapon)).Speed
-        If Player(Index).AttackTimer + AttackSpeed > GetTickCount() Then If Player(Index).Attacking = 1 Then Frame = 3
+        If Player(Index).AttackTimer + (AttackSpeed / 2) > GetTickCount() Then If Player(Index).Attacking = 1 Then Frame = 3
         Select Case GetPlayerDir(Index)
             Case Direction.Up
                 If Frame = 0 AndAlso Player(Index).YOffset > 8 Then Frame = Player(Index).Steps
@@ -387,6 +387,7 @@ Public Class Window : Inherits Game
         ' render the actual sprite
         RenderTexture(Characters(Spritenum), New Vector2(X, Y), Source)
     End Sub
+
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
         Dim TextY As Integer
