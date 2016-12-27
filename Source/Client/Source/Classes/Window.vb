@@ -114,6 +114,32 @@ Public Class Window : Inherits Game
                 DrawMapLayer(Layer)
             Next
 
+            ' Draw our animations that go below players.
+            For I = 1 To Byte.MaxValue
+                If AnimInstance(I).Used(0) Then
+                    DrawAnimation(I, 0)
+                End If
+            Next
+
+            ' Y based rendering, so things overlap accordingly.
+            For Y = 0 To Map.MaxY
+
+                ' Players
+                For I = 1 To MAX_PLAYERS
+                    If IsPlaying(I) And GetPlayerMap(I) = GetPlayerMap(MyIndex) Then
+                        If Player(I).Y = Y Then
+                            DrawPlayer(I)
+                        End If
+                        If PetAlive(I) Then
+                            If Player(I).Pet.Y = Y Then
+                                ' DrawPet(I)
+                            End If
+                        End If
+                    End If
+                Next
+
+            Next
+
             ' Draw our top layers.
             For Layer = MapLayer.Fringe To MapLayer.Fringe2
                 DrawMapLayer(Layer)
@@ -240,15 +266,247 @@ Public Class Window : Inherits Game
         Next
     End Sub
 
-    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
-        ' First make sure our texture exists.
-        LoadTexture(Texture)
+    Private Sub DrawAnimation(ByVal Index As Integer, ByVal Layer As Integer)
 
-        ' Draw to screen
-        View.Draw(Texture.Texture, Destination, Source, New Color(255, 255, 255, 255))
+        Dim Sprite As Integer
+        Dim sRECT As Rectangle
+        Dim width As Integer, height As Integer
+        Dim FrameCount As Integer
+        Dim X As Integer, Y As Integer
+        Dim lockindex As Integer
+
+        If AnimInstance(Index).Animation = 0 Then
+            ClearAnimInstance(Index)
+            Exit Sub
+        End If
+
+        Sprite = Animation(AnimInstance(Index).Animation).Sprite(Layer)
+
+        If Sprite < 1 Or Sprite > NumAnimations Then Exit Sub
+
+        FrameCount = Animation(AnimInstance(Index).Animation).Frames(Layer)
+
+        If FrameCount <= 0 Then Exit Sub
+
+        ' MAke sure our animation is loaded.
+        If Animations(Sprite).Texture Is Nothing Then LoadTexture(Animations(Sprite))
+
+        ' total width divided by frame count
+        width = Animations(Sprite).Texture.Width / FrameCount
+        height = Animations(Sprite).Texture.Height
+
+        sRECT.Y = 0
+        sRECT.Height = height
+        sRECT.X = (AnimInstance(Index).FrameIndex(Layer) - 1) * width
+        sRECT.Width = width
+
+        ' change x or y if locked
+        If AnimInstance(Index).LockType > TargetType.None Then ' if <> none
+            ' is a player
+            If AnimInstance(Index).LockType = TargetType.Player Then
+                ' quick save the index
+                lockindex = AnimInstance(Index).lockindex
+                ' check if is ingame
+                If IsPlaying(lockindex) Then
+                    ' check if on same map
+                    If GetPlayerMap(lockindex) = GetPlayerMap(MyIndex) Then
+                        ' is on map, is playing, set x & y
+                        X = (GetPlayerX(lockindex) * PIC_X) + 16 - (width / 2) + Player(lockindex).XOffset
+                        Y = (GetPlayerY(lockindex) * PIC_Y) + 16 - (height / 2) + Player(lockindex).YOffset
+                    End If
+                End If
+            ElseIf AnimInstance(Index).LockType = TargetType.Npc Then
+                ' quick save the index
+                lockindex = AnimInstance(Index).lockindex
+                ' check if NPC exists
+                If MapNpc(lockindex).Num > 0 Then
+                    ' check if alive
+                    If MapNpc(lockindex).Vital(Vitals.HP) > 0 Then
+                        ' exists, is alive, set x & y
+                        X = (MapNpc(lockindex).X * PIC_X) + 16 - (width / 2) + MapNpc(lockindex).XOffset
+                        Y = (MapNpc(lockindex).Y * PIC_Y) + 16 - (height / 2) + MapNpc(lockindex).YOffset
+                    Else
+                        ' npc not alive anymore, kill the animation
+                        ClearAnimInstance(Index)
+                        Exit Sub
+                    End If
+                Else
+                    ' npc not alive anymore, kill the animation
+                    ClearAnimInstance(Index)
+                    Exit Sub
+                End If
+            End If
+        Else
+            ' no lock, default x + y
+            X = (AnimInstance(Index).X * 32) + 16 - (width / 2)
+            Y = (AnimInstance(Index).Y * 32) + 16 - (height / 2)
+        End If
+
+        X = ConvertMapX(X)
+        Y = ConvertMapY(Y)
+
+        ' Clip to screen
+        If Y < 0 Then
+
+            With sRECT
+                .Y = .Y - Y
+                .Height = .Height - (Y * (-1))
+            End With
+
+            Y = 0
+        End If
+
+        If X < 0 Then
+
+            With sRECT
+                .X = .X - X
+                .Width = .Width - (Y * (-1))
+            End With
+
+            X = 0
+        End If
+
+        If sRECT.Width < 0 Or sRECT.Height < 0 Then Exit Sub
+
+        RenderTexture(Animations(Sprite), New Vector2(X, Y), New Rectangle(sRECT.X, sRECT.Y, sRECT.Width, sRECT.Height))
+    End Sub
+    Private Sub DrawCharacter(ByVal Sprite As Integer, ByVal x2 As Integer, ByVal y2 As Integer, ByVal rec As Rectangle)
+        Dim X As Integer
+        Dim y As Integer
+
+        If Sprite < 1 Or Sprite > NumCharacters Then Exit Sub
+
+        RenderTexture(Characters(Sprite), New Vector2(X, y), New Rectangle(rec.X, rec.Y, rec.Width, rec.Height))
+    End Sub
+    Private Sub DrawPlayer(ByVal Index As Integer)
+        Dim Anim As Byte, X As Integer, Y As Integer
+        Dim Spritenum As Integer, spriteleft As Integer
+        Dim attackspeed As Integer, AttackSprite As Byte
+        Dim srcrec As Rectangle
+
+        Spritenum = GetPlayerSprite(Index)
+
+        AttackSprite = 0
+
+        If Spritenum < 1 Or Spritenum > NumCharacters Then Exit Sub
+
+        ' Make sure our sprite exists.
+        If Characters(Spritenum).Texture Is Nothing Then LoadTexture(Characters(Spritenum))
+
+        ' speed from weapon
+        If GetPlayerEquipment(Index, EquipmentType.Weapon) > 0 Then
+            attackspeed = Item(GetPlayerEquipment(Index, EquipmentType.Weapon)).Speed
+        Else
+            attackspeed = 1000
+        End If
+
+        ' Reset frame
+        Anim = 0
+
+        ' Check for attacking animation
+        If Player(Index).AttackTimer + (attackspeed / 2) > GetTickCount() Then
+            If Player(Index).Attacking = 1 Then
+                If AttackSprite = 1 Then
+                    Anim = 4
+                Else
+                    Anim = 3
+                End If
+            End If
+        Else
+            ' If not attacking, walk normally
+            Select Case GetPlayerDir(Index)
+                Case Direction.Up
+
+                    If (Player(Index).YOffset > 8) Then Anim = Player(Index).Steps
+                Case Direction.Down
+
+                    If (Player(Index).YOffset < -8) Then Anim = Player(Index).Steps
+                Case Direction.Left
+
+                    If (Player(Index).XOffset > 8) Then Anim = Player(Index).Steps
+                Case Direction.Right
+
+                    If (Player(Index).XOffset < -8) Then Anim = Player(Index).Steps
+            End Select
+
+        End If
+
+        ' Check to see if we want to stop making him attack
+        With Player(Index)
+            If .AttackTimer + attackspeed < GetTickCount() Then
+                .Attacking = 0
+                .AttackTimer = 0
+            End If
+
+        End With
+
+        ' Set the left
+        Select Case GetPlayerDir(Index)
+            Case Direction.Up
+                spriteleft = 3
+            Case Direction.Right
+                spriteleft = 2
+            Case Direction.Down
+                spriteleft = 0
+            Case Direction.Left
+                spriteleft = 1
+        End Select
+
+        If AttackSprite = 1 Then
+            srcrec = New Rectangle((Anim) * (Characters(Spritenum).Texture.Width / 5), spriteleft * (Characters(Spritenum).Texture.Height / 4), (Characters(Spritenum).Texture.Width / 5), (Characters(Spritenum).Texture.Height / 4))
+        Else
+            srcrec = New Rectangle((Anim) * (Characters(Spritenum).Texture.Width / 4), spriteleft * (Characters(Spritenum).Texture.Height / 4), (Characters(Spritenum).Texture.Width / 4), (Characters(Spritenum).Texture.Height / 4))
+        End If
+
+        ' Calculate the X
+        If AttackSprite = 1 Then
+            X = GetPlayerX(Index) * PIC_X + Player(Index).XOffset - ((Characters(Spritenum).Texture.Width / 5 - 32) / 2)
+        Else
+            X = GetPlayerX(Index) * PIC_X + Player(Index).XOffset - ((Characters(Spritenum).Texture.Width / 4 - 32) / 2)
+        End If
+
+        ' Is the player's height more than 32..?
+        If Characters(Spritenum).Texture.Height > 32 Then
+            ' Create a 32 pixel offset for larger sprites
+            Y = GetPlayerY(Index) * PIC_Y + Player(Index).YOffset - ((Characters(Spritenum).Texture.Height / 4) - 32)
+        Else
+            ' Proceed as normal
+            Y = GetPlayerY(Index) * PIC_Y + Player(Index).YOffset
+        End If
+
+        ' render the actual sprite
+        DrawCharacter(Spritenum, X, Y, srcrec)
+
+        'check for paperdolling
+        For i = 1 To EquipmentType.Count - 1
+            If GetPlayerEquipment(Index, i) > 0 Then
+                If Item(GetPlayerEquipment(Index, i)).Paperdoll > 0 Then
+                    'DrawPaperdoll(X, Y, Item(GetPlayerEquipment(Index, i)).Paperdoll, Anim, spriteleft)
+                End If
+            End If
+        Next
+
+        ' Check to see if we want to stop showing emote
+        With Player(Index)
+            If .EmoteTimer < GetTickCount() Then
+                .Emote = 0
+                .EmoteTimer = 0
+            End If
+        End With
+
+        'check for emotes
+        'Player(Index).Emote = 4
+        If Player(Index).Emote > 0 Then
+            'DrawEmotes(X, Y, Player(Index).Emote)
+        End If
+    End Sub
+
+    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
+        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
     End Sub
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle, ByVal ColorMask As Color)
         ' First make sure our texture exists.
+        If Texture Is Nothing Then Exit Sub
         LoadTexture(Texture)
 
         ' Draw to screen
@@ -259,22 +517,7 @@ Public Class Window : Inherits Game
 #Region "Logic Updates"
 
     Private Sub UpdateCameraOffset()
-        Dim TilesX = (Window.ClientBounds.Width / PIC_X) + 1
-        Dim TilesY = (Window.ClientBounds.Height / PIC_Y) + 1
 
-        ' If we can display more than we need set offset to center.
-        If TilesX > Map.MaxX Then
-            RenderOffset.X = (Window.ClientBounds.Width / 2) - ((Map.MaxX * PIC_X) / 2)
-        Else
-            RenderOffset.X = (Player(MyIndex).X * PIC_X) - (Map.MaxX * PIC_X)
-        End If
-
-        ' If we can display more than we need set offset to center.
-        If TilesY > Map.MaxY Then
-            RenderOffset.Y = (Window.ClientBounds.Height / 2) - ((Map.MaxY * PIC_Y) / 2)
-        Else
-            RenderOffset.Y = (Player(MyIndex).Y * PIC_Y) - (Map.MaxY * PIC_Y)
-        End If
     End Sub
 
 #End Region

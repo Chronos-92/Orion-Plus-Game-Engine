@@ -263,14 +263,19 @@ Module ClientGeneral
         isStringLegal = True
     End Function
 
+    Public Sub InitWindow()
+        Dim w As New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
+        w.Run()
+    End Sub
+
     Sub GameInit()
         ' pnlloadvisible = False
 
         ' Set the focus
         ' frmMainGame.picscreen.Focus()
 
-        Dim w As New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
-        w.Run()
+        Dim TWindow As New Thread(AddressOf InitWindow)
+        TWindow.Start()
 
         'stop the song playing
         StopMusic()
