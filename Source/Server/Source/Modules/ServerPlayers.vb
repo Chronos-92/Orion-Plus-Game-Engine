@@ -168,6 +168,11 @@ Module ServerPlayers
         SetPlayerMap(Index, MapNum)
         SetPlayerX(Index, x)
         SetPlayerY(Index, y)
+        Player(Index).Character(TempPlayer(Index).CurChar).Pet.x = x
+        Player(Index).Character(TempPlayer(Index).CurChar).Pet.y = y
+        TempPlayer(Index).PetTarget = 0
+        TempPlayer(Index).PetTargetType = 0
+        SendPlayerXY(Index)
 
         ' send equipment of all people on new map
         If GetTotalMapPlayers(MapNum) > 0 Then
@@ -321,6 +326,8 @@ Module ServerPlayers
         SendStats(Index)
         SendJoinMap(Index)
         SendHouseConfigs(Index)
+        SendPets(Index)
+        SendUpdatePlayerPet(Index, True)
         For i = 0 To ResourceCache(GetPlayerMap(Index)).Resource_Count
             SendResourceCacheTo(Index, i)
         Next
@@ -374,6 +381,9 @@ Module ServerPlayers
                 TempPlayer(tradeTarget).InTrade = 0
                 SendCloseTrade(tradeTarget)
             End If
+
+            'pet
+            ReleasePet(Index)
 
             SavePlayer(Index)
             SaveBank(Index)
@@ -2235,6 +2245,10 @@ Module ServerPlayers
                     ' Get the recipe num
                     n = Item(InvItemNum).Data1
                     LearnRecipe(Index, n, InvNum)
+                Case ItemType.Pet
+
+                    n = Item(InvItemNum).Data1
+                    SummonPet(Index, n)
             End Select
 
         End If
@@ -2377,4 +2391,46 @@ Module ServerPlayers
         End If
 
     End Sub
+
+    Public Sub HandleNpcKillExperience(ByVal Index As Integer, ByVal NpcNum As Integer)
+        ' Get the experience we'll have to hand out. If it's negative, just ignore this method.
+        Dim Experience = Npc(NpcNum).Exp
+        If Experience < 0 Then Exit Sub
+
+        ' Is our player in a party? If so, hand out exp to everyone.
+        If IsPlayerInParty(Index) Then
+            Party_ShareExp(GetPlayerParty(Index), Experience, Index, GetPlayerMap(Index))
+        Else
+            GivePlayerEXP(Index, Experience)
+        End If
+    End Sub
+
+    Public Sub HandlePlayerKillExperience(ByVal Attacker As Integer, ByVal Victim As Integer)
+        ' Calculate exp to give attacker
+        Dim exp = (GetPlayerExp(Victim) \ 10)
+
+        ' Make sure we dont get less then 0
+        If Exp < 0 Then
+            Exp = 0
+        End If
+
+        If Exp = 0 Then
+            PlayerMsg(Victim, "You've lost no exp.", ColorType.BrightRed)
+            PlayerMsg(Attacker, "You've received no exp.", ColorType.BrightBlue)
+        Else
+            SetPlayerExp(Victim, GetPlayerExp(Victim) - Exp)
+            SendExp(Victim)
+            PlayerMsg(Victim, String.Format("You've lost {0} exp.", exp), ColorType.BrightRed)
+
+            ' check if we're in a party
+            If IsPlayerInParty(Attacker) > 0 Then
+                ' pass through party exp share function
+                Party_ShareExp(GetPlayerParty(Attacker), exp, Attacker, GetPlayerMap(Attacker))
+            Else
+                ' not in party, get exp for self
+                GivePlayerEXP(Attacker, Exp)
+            End If
+        End If
+    End Sub
+
 End Module

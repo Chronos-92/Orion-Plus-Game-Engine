@@ -152,6 +152,8 @@
         ' Random Items
         Dim RandInv() As RandInvRec
         Dim RandEquip() As RandInvRec
+
+        Dim Pet As PlayerPetRec
     End Structure
 
     Public Structure TileDataRec

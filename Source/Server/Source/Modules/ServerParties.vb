@@ -164,7 +164,7 @@
     End Sub
 #End Region
 
-    Sub ClearPartys()
+    Sub ClearParties()
         Dim i As Integer
 
         For i = 1 To MAX_PARTIES
@@ -480,5 +480,15 @@
         End If
 
     End Sub
+
+    Public Function IsPlayerInParty(ByVal Index As Integer) As Boolean
+        If Index < 0 Or Index > MAX_PLAYERS Or Not TempPlayer(Index).InGame Then Exit Function
+        If TempPlayer(Index).InParty > 0 Then IsPlayerInParty = True
+    End Function
+
+    Public Function GetPlayerParty(ByVal Index As Integer) As Integer
+        If Index < 0 Or Index > MAX_PLAYERS Or Not TempPlayer(Index).InGame Then Exit Function
+        GetPlayerParty = TempPlayer(Index).InParty
+    End Function
 
 End Module
