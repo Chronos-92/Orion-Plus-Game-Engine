@@ -35,6 +35,7 @@ Public Class Window : Inherits Game
     Private TexProjectiles() As TextureRec
     Private TexResources() As TextureRec
     Private TexSkillicons() As TextureRec
+    Private TexMisc As Dictionary(Of String, TextureRec)
 
     ' Fonts
     Private GameFonts As Dictionary(Of Integer, SpriteFont)
@@ -138,6 +139,18 @@ Public Class Window : Inherits Game
                 Next
             End If
 
+            ' events
+            If Map.CurrentEvents > 0 And Map.CurrentEvents <= Map.EventCount Then
+                For I = 1 To Map.CurrentEvents
+                    If Map.MapEvents(I).Position = 0 Then DrawEvent(I)
+                Next
+            End If
+
+            'blood
+            For I = 1 To Byte.MaxValue
+                DrawBlood(I)
+            Next
+
             ' Draw our animations that go below our characters.
             For I = 1 To Byte.MaxValue
                 If AnimInstance(I).Used(0) Then DrawAnimation(I, 0)
@@ -164,7 +177,22 @@ Public Class Window : Inherits Game
                         ' TODO: Draw emotes
                     End If
                 Next
+
+                ' events
+                If Map.CurrentEvents > 0 AndAlso Map.CurrentEvents <= Map.EventCount Then
+                    For I = 1 To Map.CurrentEvents
+                        If Map.MapEvents(I).Y = Y AndAlso Map.MapEvents(I).Position = 1 Then DrawEvent(I)
+                    Next
+                End If
+
             Next
+
+            ' events
+            If Map.CurrentEvents > 0 AndAlso Map.CurrentEvents <= Map.EventCount Then
+                For I = 1 To Map.CurrentEvents
+                    If Map.MapEvents(I).Position = 2 Then DrawEvent(I)
+                Next
+            End If
 
             ' Draw our top layers.
             For Layer = MapLayer.Fringe To MapLayer.Fringe2
@@ -206,7 +234,6 @@ Public Class Window : Inherits Game
 #Region "Init Data"
     Private Sub InitTextures()
         Dim Dir = Path.Combine(AppLocation, "Data Files", "Graphics")
-        ' InitTilesets(Dir)
         InitGraphics(Path.Combine(Dir, "Tilesets"), TexTilesets)
         InitGraphics(Path.Combine(Dir, "Characters"), TexCharacters)
         InitGraphics(Path.Combine(Dir, "Animations"), TexAnimations)
@@ -219,6 +246,9 @@ Public Class Window : Inherits Game
         InitGraphics(Path.Combine(Dir, "Projectiles"), TexProjectiles)
         InitGraphics(Path.Combine(Dir, "Resources"), TexResources)
         InitGraphics(Path.Combine(Dir, "Skillicons"), TexSkillicons)
+
+        ' All miscellanious files.
+        InitMiscGraphics()
     End Sub
 
     Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
@@ -244,6 +274,19 @@ Public Class Window : Inherits Game
             Array(i).FileName = Files(i - 1)
             Array(i).LastAccess = DateTime.MinValue
         Next
+    End Sub
+    Private Sub InitMiscGraphics()
+        TexMisc = New Dictionary(Of String, TextureRec)()
+        Dim Dir = New DirectoryInfo(Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS))
+        For Each File In Dir.EnumerateFiles(String.Format("*{0}", GFX_EXT), SearchOption.TopDirectoryOnly)
+            InitMisc(Path.GetFileNameWithoutExtension(File.Name))
+        Next
+    End Sub
+    Private Sub InitMisc(ByVal File As String)
+        Dim t = New TextureRec()
+        t.FileName = Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS, String.Format("{0}{1}", File, GFX_EXT))
+        t.LastAccess = DateTime.MinValue
+        TexMisc.Add(File, t)
     End Sub
 #End Region
 
@@ -295,6 +338,8 @@ Public Class Window : Inherits Game
         UnloadGraphics(TexProjectiles)
         UnloadGraphics(TexResources)
         UnloadGraphics(TexSkillicons)
+
+        UnloadMiscGraphics()
     End Sub
 
     Private Sub UnloadGraphics(ByRef Array() As TextureRec)
@@ -302,6 +347,14 @@ Public Class Window : Inherits Game
             If Not T Is Nothing AndAlso Not T.Texture Is Nothing AndAlso T.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.LastAccess).Minutes > 5 Then
                 T.Texture = Nothing
                 T.LastAccess = DateTime.MinValue
+            End If
+        Next
+    End Sub
+    Private Sub UnloadMiscGraphics()
+        For Each T In TexMisc
+            If Not T.Value Is Nothing AndAlso Not T.Value.Texture Is Nothing AndAlso T.Value.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.Value.LastAccess).Minutes > 5 Then
+                T.Value.Texture = Nothing
+                T.Value.LastAccess = DateTime.MinValue
             End If
         Next
     End Sub
@@ -404,6 +457,121 @@ Public Class Window : Inherits Game
                 End If
             Next
         Next
+
+    End Sub
+    Public Sub DrawEvent(id As Integer)
+        Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, sRect As Rectangle, Anim As Integer, spritetop As Integer
+
+        If Map.MapEvents(id).Visible = 0 Then Exit Sub
+        If InMapEditor Then Exit Sub
+        Select Case Map.MapEvents(id).GraphicType
+            Case 0
+                Exit Sub
+            Case 1
+                If Map.MapEvents(id).GraphicNum <= 0 Or Map.MapEvents(id).GraphicNum > TexCharacters.Length Then Exit Sub
+
+                ' Reset frame
+                If Map.MapEvents(id).Steps = 3 Then
+                    Anim = 0
+                ElseIf Map.MapEvents(id).Steps = 1 Then
+                    Anim = 2
+                End If
+
+                Select Case Map.MapEvents(id).dir
+                    Case Direction.Up
+                        If (Map.MapEvents(id).YOffset > 8) Then Anim = Map.MapEvents(id).Steps
+                    Case Direction.Down
+                        If (Map.MapEvents(id).YOffset < -8) Then Anim = Map.MapEvents(id).Steps
+                    Case Direction.Left
+                        If (Map.MapEvents(id).XOffset > 8) Then Anim = Map.MapEvents(id).Steps
+                    Case Direction.Right
+                        If (Map.MapEvents(id).XOffset < -8) Then Anim = Map.MapEvents(id).Steps
+                End Select
+
+                ' Set the left
+                Select Case Map.MapEvents(id).ShowDir
+                    Case Direction.Up
+                        spritetop = 3
+                    Case Direction.Right
+                        spritetop = 2
+                    Case Direction.Down
+                        spritetop = 0
+                    Case Direction.Left
+                        spritetop = 1
+                End Select
+
+                If Map.MapEvents(id).WalkAnim = 1 Then Anim = 0
+                If Map.MapEvents(id).Moving = 0 Then Anim = Map.MapEvents(id).GraphicX
+
+                ' Make sure our texture is loaded.
+                Dim Tex = TexCharacters(Map.MapEvents(id).GraphicNum)
+                LoadTexture(Tex)
+
+                Width = TexCharacters(id).Texture.Width / 4
+                Height = TexCharacters(id).Texture.Height / 4
+
+                sRect = New Rectangle((Anim) * (Tex.Texture.Width / 4), spritetop * (Tex.Texture.Height / 4), (Tex.Texture.Width / 4), (Tex.Texture.Height / 4))
+                ' Calculate the X
+                X = Map.MapEvents(id).X * PIC_X + Map.MapEvents(id).XOffset - ((Tex.Texture.Width / 4 - 32) / 2)
+
+                ' Is the player's height more than 32..?
+                If (Tex.Texture.Height * 4) > 32 Then
+                    ' Create a 32 pixel offset for larger sprites
+                    Y = Map.MapEvents(id).Y * PIC_Y + Map.MapEvents(id).YOffset - ((Tex.Texture.Height / 4) - 32)
+                Else
+                    ' Proceed as normal
+                    Y = Map.MapEvents(id).Y * PIC_Y + Map.MapEvents(id).YOffset
+                End If
+                ' render the actual sprite
+                RenderTexture(Tex, New Vector2(ConvertMapX(X), ConvertMapY(Y)), sRect)
+            Case 2
+                If Map.MapEvents(id).GraphicNum < 1 Or Map.MapEvents(id).GraphicNum > TexTilesets.Length Then Exit Sub
+                If Map.MapEvents(id).GraphicY2 > 0 Or Map.MapEvents(id).GraphicX2 > 0 Then
+                    With sRect
+                        .X = Map.MapEvents(id).GraphicX * 32
+                        .Y = Map.MapEvents(id).GraphicY * 32
+                        .Width = Map.MapEvents(id).GraphicX2 * 32
+                        .Height = Map.MapEvents(id).GraphicY2 * 32
+                    End With
+                Else
+                    With sRect
+                        .X = Map.MapEvents(id).GraphicY * 32
+                        .Height = .Top + 32
+                        .Y = Map.MapEvents(id).GraphicX * 32
+                        .Width = .Left + 32
+                    End With
+                End If
+                X = Map.MapEvents(id).X * 32
+                Y = Map.MapEvents(id).Y * 32
+                X = X - ((sRect.Right - sRect.Left) / 2)
+                Y = Y - (sRect.Bottom - sRect.Top) + 32
+                If Map.MapEvents(id).GraphicY2 > 0 Then
+                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(ConvertMapX(Map.MapEvents(id).X * 32), ConvertMapY(Map.MapEvents(id).Y * 32) - ConvertMapX(Map.MapEvents(id).GraphicY2 * 32) + 32), sRect)
+                Else
+                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(ConvertMapX(Map.MapEvents(id).X * 32), ConvertMapY(Map.MapEvents(id).Y * 32)), sRect)
+                End If
+        End Select
+
+    End Sub
+    Public Sub DrawBlood(ByVal Index As Integer)
+        Dim srcrec As Rectangle
+        Dim destrec As Rectangle
+        Dim x As Integer
+        Dim y As Integer
+
+        With Blood(Index)
+            ' check if we should be seeing it
+            If .Timer + 20000 < GetTickCount() Then Exit Sub
+
+            x = ConvertMapX(Blood(Index).X * PIC_X)
+            y = ConvertMapY(Blood(Index).Y * PIC_Y)
+
+            srcrec = New Rectangle((.Sprite - 1) * PIC_X, 0, PIC_X, PIC_Y)
+
+            destrec = New Rectangle(ConvertMapX(.X * PIC_X), ConvertMapY(.Y * PIC_Y), PIC_X, PIC_Y)
+
+            RenderTexture(TexMisc("Blood"), New Vector2(destrec.X, destrec.Y), srcrec)
+        End With
 
     End Sub
     Private Sub DrawAnimation(ByVal Index As Integer, ByVal Layer As Integer)
