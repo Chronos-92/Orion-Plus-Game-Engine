@@ -1,8 +1,10 @@
 ﻿Imports System.IO
+Imports System.Linq
 Imports System.Windows.Forms
 Imports Microsoft.Xna.Framework
 Imports Microsoft.Xna.Framework.Graphics
 Imports Microsoft.Xna.Framework.Input
+Imports MonoGame.Extended
 
 Public Class Window : Inherits Game
 
@@ -17,7 +19,9 @@ Public Class Window : Inherits Game
 
     ' Logic Variables.
     Private HasBeenResized As Boolean
-    Private RenderOffset As Vector2
+    Private Viewport As Camera2D
+    Private ViewPortX As List(Of Integer)
+    Private ViewPortY As List(Of Integer)
 
     ' Location Variables
     Private AppLocation As String
@@ -59,8 +63,9 @@ Public Class Window : Inherits Game
         Device.IsFullScreen = Fullscreen
         Device.ApplyChanges()
 
-        ' Be cheeky and disable MonoGame from slowing down when it loses focus.
-        InactiveSleepTime = New TimeSpan(0)
+        ' Stop limiting us to 60fps!
+        Device.SynchronizeWithVerticalRetrace = False
+        IsFixedTimeStep = False
 
         ' Allow the mouse to be visible.
         IsMouseVisible = True
@@ -76,7 +81,9 @@ Public Class Window : Inherits Game
         Content.RootDirectory = Path.Combine(AppLocation, DIR_ROOT)
 
         ' Initialize all our rendering arrays and variables.
-        RenderOffset = New Vector2()
+        Viewport = New Camera2D(Device.GraphicsDevice)
+        ViewPortX = New List(Of Integer)()
+        ViewPortY = New List(Of Integer)()
         InitTextures()
 
         MyBase.Initialize()     ' Do not touch
@@ -84,7 +91,7 @@ Public Class Window : Inherits Game
 
     Protected Overrides Sub LoadContent()
         ' Create our MonoGame objects.
-        View = New SpriteBatch(GraphicsDevice)
+        View = New SpriteBatch(Device.GraphicsDevice)
 
         ' Load all our font sizes.
         LoadFonts()
@@ -127,7 +134,7 @@ Public Class Window : Inherits Game
     Protected Overrides Sub Draw(Time As GameTime)
         ' Clear our screen and give it a lovely black background colour then start rendering new stuff!
         GraphicsDevice.Clear(Color.Black)
-        View.Begin()
+        View.Begin(transformMatrix:=Viewport.GetViewMatrix(), blendState:=BlendState.NonPremultiplied, samplerState:=SamplerState.PointClamp)
 
         ' TODO: Render Graphics
         If Not GettingMap Then
@@ -235,6 +242,8 @@ Public Class Window : Inherits Game
             Next
 
         End If
+
+        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 14, New Vector2(10, 10), Color.Yellow, Color.Black, True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
@@ -441,16 +450,17 @@ Public Class Window : Inherits Game
         With Map.Tile(X, Y).Layer(Layer)
             Select Case Autotile(X, Y).Layer(Layer).renderState
                 Case RENDER_STATE_NORMAL
-                    RenderTexture(TexTilesets(Map.Tile(X, Y).Layer(Layer).Tileset), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), New Rectangle(Map.Tile(X, Y).Layer(Layer).X * PIC_X, Map.Tile(X, Y).Layer(Layer).Y * PIC_Y, PIC_X, PIC_Y))
+                    RenderTexture(TexTilesets(Map.Tile(X, Y).Layer(Layer).Tileset), New Vector2(X * PIC_X, Y * PIC_Y), New Rectangle(Map.Tile(X, Y).Layer(Layer).X * PIC_X, Map.Tile(X, Y).Layer(Layer).Y * PIC_Y, PIC_X, PIC_Y))
                 Case RENDER_STATE_AUTOTILE
-                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y), 1, X, Y, 0, False)
-                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X) + 16, ConvertMapY(Y * PIC_Y), 2, X, Y, 0, False)
-                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y) + 16, 3, X, Y, 0, False)
-                    DrawAutoTile(Layer, ConvertMapX(X * PIC_X) + 16, ConvertMapY(Y * PIC_Y) + 16, 4, X, Y, 0, False)
+                    DrawAutoTile(Layer, X * PIC_X, Y * PIC_Y, 1, X, Y, 0, False)
+                    DrawAutoTile(Layer, X * PIC_X + 16, Y * PIC_Y, 2, X, Y, 0, False)
+                    DrawAutoTile(Layer, X * PIC_X, Y * PIC_Y + 16, 3, X, Y, 0, False)
+                    DrawAutoTile(Layer, X * PIC_X + 16, Y * PIC_Y + 16, 4, X, Y, 0, False)
             End Select
         End With
     End Sub
     Public Sub DrawAutoTile(ByVal layerNum As Integer, ByVal destX As Integer, ByVal destY As Integer, ByVal quarterNum As Integer, ByVal X As Integer, ByVal Y As Integer, Optional forceFrame As Integer = 0, Optional strict As Boolean = True)
+        If Map.Tile(X, Y).Layer Is Nothing Or Map.Tile(X, Y).Layer(layerNum).AutoTile = Nothing Then Exit Sub
         ' calculate the offset
         If forceFrame > 0 Then
             Select Case forceFrame - 1
@@ -516,9 +526,6 @@ Public Class Window : Inherits Game
                     ' Set base x + y, then the offset due to size
                     X = (Furniture(Index).X * 32) + (X1 * 32)
                     Y = (Furniture(Index).Y * 32 - (Height * 32)) + (Y1 * 32)
-                    X = ConvertMapX(X)
-                    Y = ConvertMapY(Y)
-
                     RenderTexture(TexFurniture(i), New Vector2(X, Y), New Rectangle(0 + (X1 * 32), 0 + (Y1 * 32), 32, 32))
                 End If
             Next
@@ -589,7 +596,7 @@ Public Class Window : Inherits Game
                     Y = Map.MapEvents(id).Y * PIC_Y + Map.MapEvents(id).YOffset
                 End If
                 ' render the actual sprite
-                RenderTexture(Tex, New Vector2(ConvertMapX(X), ConvertMapY(Y)), sRect)
+                RenderTexture(Tex, New Vector2(X, Y), sRect)
             Case 2
                 If Map.MapEvents(id).GraphicNum < 1 Or Map.MapEvents(id).GraphicNum > TexTilesets.Length Then Exit Sub
                 If Map.MapEvents(id).GraphicY2 > 0 Or Map.MapEvents(id).GraphicX2 > 0 Then
@@ -612,9 +619,9 @@ Public Class Window : Inherits Game
                 X = X - ((sRect.Right - sRect.Left) / 2)
                 Y = Y - (sRect.Bottom - sRect.Top) + 32
                 If Map.MapEvents(id).GraphicY2 > 0 Then
-                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(ConvertMapX(Map.MapEvents(id).X * 32), ConvertMapY(Map.MapEvents(id).Y * 32) - ConvertMapX(Map.MapEvents(id).GraphicY2 * 32) + 32), sRect)
+                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(Map.MapEvents(id).X * 32, Map.MapEvents(id).Y * 32 - Map.MapEvents(id).GraphicY2 * 32 + 32), sRect)
                 Else
-                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(ConvertMapX(Map.MapEvents(id).X * 32), ConvertMapY(Map.MapEvents(id).Y * 32)), sRect)
+                    RenderTexture(TexTilesets(Map.MapEvents(id).GraphicNum), New Vector2(Map.MapEvents(id).X * 32, Map.MapEvents(id).Y * 32), sRect)
                 End If
         End Select
 
@@ -622,20 +629,12 @@ Public Class Window : Inherits Game
     Public Sub DrawBlood(ByVal Index As Integer)
         Dim srcrec As Rectangle
         Dim destrec As Rectangle
-        Dim x As Integer
-        Dim y As Integer
 
         With Blood(Index)
             ' check if we should be seeing it
             If .Timer + 20000 < GetTickCount() Then Exit Sub
-
-            x = ConvertMapX(Blood(Index).X * PIC_X)
-            y = ConvertMapY(Blood(Index).Y * PIC_Y)
-
             srcrec = New Rectangle((.Sprite - 1) * PIC_X, 0, PIC_X, PIC_Y)
-
-            destrec = New Rectangle(ConvertMapX(.X * PIC_X), ConvertMapY(.Y * PIC_Y), PIC_X, PIC_Y)
-
+            destrec = New Rectangle(.X * PIC_X, .Y * PIC_Y, PIC_X, PIC_Y)
             RenderTexture(TexMisc("Blood"), New Vector2(destrec.X, destrec.Y), srcrec)
         End With
 
@@ -683,7 +682,7 @@ Public Class Window : Inherits Game
         x2 = (X * PIC_X)
         y2 = (Y * PIC_Y) - (TexMisc("Door").Texture.Height / 2) + 4
 
-        RenderTexture(TexMisc("Door"), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), rec)
+        RenderTexture(TexMisc("Door"), New Vector2(X * PIC_X, Y * PIC_Y), rec)
     End Sub
     Public Sub DrawItem(ByVal itemnum As Integer)
         Dim srcrec As Rectangle
@@ -702,8 +701,8 @@ Public Class Window : Inherits Game
             srcrec = New Rectangle(0, 0, PIC_X, PIC_Y)
         End If
 
-        x = ConvertMapX(MapItem(itemnum).X * PIC_X)
-        y = ConvertMapY(MapItem(itemnum).Y * PIC_Y)
+        x = MapItem(itemnum).X * PIC_X
+        y = MapItem(itemnum).Y * PIC_Y
 
         RenderTexture(TexItems(PicNum), New Vector2(x, y), srcrec)
     End Sub
@@ -766,7 +765,7 @@ Public Class Window : Inherits Game
                 Throw New NotImplementedException()
         End Select
 
-        RenderTexture(TexAnimations(Tex), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
+        RenderTexture(TexAnimations(Tex), New Vector2(X, Y), Source)
     End Sub
     Private Sub DrawPlayer(ByVal Index As Integer)
         ' Make sure our sprite is valid.
@@ -807,7 +806,7 @@ Public Class Window : Inherits Game
         End If
 
         ' render the actual sprite
-        RenderTexture(TexCharacters(Spritenum), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
+        RenderTexture(TexCharacters(Spritenum), New Vector2(X, Y), Source)
     End Sub
     Public Sub DrawPet(ByVal Index As Integer)
         Dim Anim As Byte, X As Integer, Y As Integer
@@ -887,7 +886,7 @@ Public Class Window : Inherits Game
         End If
 
         ' render the actual sprite
-        RenderTexture(TexCharacters(Sprite), New Vector2(ConvertMapX(X), ConvertMapY(Y)), srcrec)
+        RenderTexture(TexCharacters(Sprite), New Vector2(X, Y), srcrec)
 
     End Sub
     Private Sub DrawMapNpc(ByVal MapNpcNum As Integer)
@@ -968,7 +967,7 @@ Public Class Window : Inherits Game
 
         destrec = New Rectangle(X, Y, TexCharacters(Sprite).Texture.Width / 4, TexCharacters(Sprite).Texture.Height / 4)
 
-        RenderTexture(TexCharacters(Sprite), New Vector2(ConvertMapX(X), ConvertMapY(Y)), srcrec)
+        RenderTexture(TexCharacters(Sprite), New Vector2(X, Y), srcrec)
     End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
@@ -1008,7 +1007,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw name
-        Call DrawText(Name, Size, New Vector2(ConvertMapX(TextX), ConvertMapY(TextY)), Color, BackColor)
+        Call DrawText(Name, Size, New Vector2(TextX, TextY), Color, BackColor)
     End Sub
     Private Sub DrawMapNpcName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
@@ -1030,11 +1029,14 @@ Public Class Window : Inherits Game
                 backcolor = Color.Black
         End Select
 
-        TextX = ConvertMapX(MapNpc(Index).X * PIC_X) + MapNpc(Index).XOffset + (PIC_X \ 2) - getTextWidth((Trim$(Npc(npcNum).Name))) / 2
+        ' Load our texture.
+        LoadTexture(TexCharacters(Npc(npcNum).Sprite))
+
+        TextX = MapNpc(Index).X * PIC_X + MapNpc(Index).XOffset + (PIC_X \ 2) - GameFonts(Size).MeasureString(Npc(npcNum).Name.Trim()).X / 2
         If Npc(npcNum).Sprite < 1 Or Npc(npcNum).Sprite > TexCharacters.Length Then
-            TextY = ConvertMapY(MapNpc(Index).Y * PIC_Y) + MapNpc(Index).YOffset - 16
+            TextY = MapNpc(Index).Y * PIC_Y + MapNpc(Index).YOffset - 16
         Else
-            TextY = ConvertMapY(MapNpc(Index).Y * PIC_Y) + MapNpc(Index).YOffset - (CharacterGFXInfo(Npc(npcNum).Sprite).Height / 4) + 16
+            TextY = MapNpc(Index).Y * PIC_Y + MapNpc(Index).YOffset - (TexCharacters(Npc(npcNum).Sprite).Texture.Height / 4) + 16
         End If
 
         ' Draw name
@@ -1053,7 +1055,9 @@ Public Class Window : Inherits Game
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
     End Sub
 
-    Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color)
+    Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color, Optional ByVal ToScreen As Boolean = False)
+        If ToScreen Then Location = Viewport.ScreenToWorld(Location)
+
         ' Draw our background text.
         View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y - 1), BackColor)
         View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y + 1), BackColor)
@@ -1067,24 +1071,31 @@ Public Class Window : Inherits Game
 
 #Region "Logic Updates"
     Private Sub UpdateCamera()
+        Dim CenterX As Integer
+        Dim CenterY As Integer
+
         If Device.PreferredBackBufferWidth > Map.MaxX * PIC_X Then
-            RenderOffset.X = (Device.PreferredBackBufferWidth - (Map.MaxX * PIC_X)) / 2 - 16
+            CenterX = (Map.MaxX * PIC_X) / 2 + 16
         Else
-            RenderOffset.X = (Device.PreferredBackBufferWidth / 2) - ((Player(MyIndex).X * PIC_X) + Player(MyIndex).XOffset)
+            CenterX = Player(MyIndex).X * PIC_X + Player(MyIndex).XOffset
         End If
 
         If Device.PreferredBackBufferHeight > Map.MaxY * PIC_Y Then
-            RenderOffset.Y = (Device.PreferredBackBufferHeight - (Map.MaxY * PIC_Y)) / 2
+            CenterX = (Map.MaxY * PIC_Y) / 2 + 16
         Else
-            RenderOffset.Y = (Device.PreferredBackBufferHeight / 2) - ((Player(MyIndex).Y * PIC_Y) + Player(MyIndex).YOffset)
+            CenterY = Player(MyIndex).Y * PIC_Y + Player(MyIndex).YOffset
         End If
+
+        ' Smooth Camera 
+        CameraAddValues(CenterX, CenterY)
+        Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
     End Sub
-    Private Function ConvertMapX(ByVal X As Integer) As Integer
-        ConvertMapX = X + RenderOffset.X
-    End Function
-    Private Function ConvertMapY(ByVal Y As Integer) As Integer
-        ConvertMapY = Y + RenderOffset.Y
-    End Function
+    Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer)
+        ViewPortX.Add(X)
+        If ViewPortX.Count() > 8 Then ViewPortX.Remove(ViewPortX.First())
+        ViewPortY.Add(Y)
+        If ViewPortY.Count() > 8 Then ViewPortY.Remove(ViewPortY.First())
+    End Sub
 #End Region
 
 #Region "Game Input"
