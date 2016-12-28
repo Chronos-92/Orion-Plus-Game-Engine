@@ -704,12 +704,12 @@ Public Module ClientGuiFunctions
                     If InBank Then
                         If Item(GetPlayerInvItemNum(MyIndex, InvNum)).Type = ItemType.CURRENCY Or Item(GetPlayerInvItemNum(MyIndex, InvNum)).Stackable = 1 Then
                             CurrencyMenu = 2 ' deposit
-                            frmMainGame.lblCurrency.Text = "How many do you want to deposit?"
-                            tmpCurrencyItem = InvNum
-                            frmMainGame.txtCurrency.Text = ""
-                            frmMainGame.pnlCurrency.Visible = True
-                            frmMainGame.pnlCurrency.BringToFront()
-                            frmMainGame.txtCurrency.Focus()
+                            'frmMainGame.lblCurrency.Text = "How many do you want to deposit?"
+                            'tmpCurrencyItem = InvNum
+                            'frmMainGame.txtCurrency.Text = ""
+                            'frmMainGame.pnlCurrency.Visible = True
+                            'frmMainGame.pnlCurrency.BringToFront()
+                            'frmMainGame.txtCurrency.Focus()
                             Exit Function
                         End If
                         DepositItem(InvNum, 0)
@@ -765,11 +765,11 @@ Public Module ClientGuiFunctions
 
                     If Item(GetBankItemNum(BankItem)).Type = ItemType.CURRENCY Or Item(GetBankItemNum(BankItem)).Stackable = 1 Then
                         CurrencyMenu = 3 ' withdraw
-                        frmMainGame.lblCurrency.Text = "How many do you want to withdraw?"
-                        tmpCurrencyItem = BankItem
-                        frmMainGame.txtCurrency.Text = ""
-                        frmMainGame.pnlCurrency.Visible = True
-                        frmMainGame.txtCurrency.Focus()
+                        'frmMainGame.lblCurrency.Text = "How many do you want to withdraw?"
+                        'tmpCurrencyItem = BankItem
+                        'frmMainGame.txtCurrency.Text = ""
+                        'frmMainGame.pnlCurrency.Visible = True
+                        'frmMainGame.txtCurrency.Focus()
                         Exit Function
                     End If
 
@@ -826,7 +826,7 @@ Public Module ClientGuiFunctions
                 End If
 
                 DragInvSlotNum = 0
-                frmMainGame.pnlTmpInv.Visible = False
+                'frmMainGame.pnlTmpInv.Visible = False
             Else
                 If FurnitureSelected > 0 Then
                     If Player(MyIndex).InHouse = MyIndex Then
@@ -879,7 +879,7 @@ Public Module ClientGuiFunctions
                 End If
 
                 DragSkillSlotNum = 0
-                frmMainGame.pnlTmpSkill.Visible = False
+                'frmMainGame.pnlTmpSkill.Visible = False
             End If
         End If
 
@@ -908,7 +908,7 @@ Public Module ClientGuiFunctions
                 End If
 
                 DragBankSlotNum = 0
-                frmMainGame.pnlTempBank.Visible = False
+                'frmMainGame.pnlTempBank.Visible = False
             End If
         End If
 
@@ -934,11 +934,11 @@ Public Module ClientGuiFunctions
                             If Item(GetPlayerInvItemNum(MyIndex, InvNum)).Type = ItemType.CURRENCY Or Item(GetPlayerInvItemNum(MyIndex, InvNum)).Stackable = 1 Then
                                 If GetPlayerInvItemValue(MyIndex, InvNum) > 0 Then
                                     CurrencyMenu = 1 ' drop
-                                    frmMainGame.lblCurrency.Text = "How many do you want to drop?"
-                                    tmpCurrencyItem = InvNum
-                                    frmMainGame.txtCurrency.Text = ""
-                                    frmMainGame.pnlCurrency.Visible = True
-                                    frmMainGame.txtCurrency.Focus()
+                                    'frmMainGame.lblCurrency.Text = "How many do you want to drop?"
+                                    'tmpCurrencyItem = InvNum
+                                    'frmMainGame.txtCurrency.Text = ""
+                                    'frmMainGame.pnlCurrency.Visible = True
+                                    'frmMainGame.txtCurrency.Focus()
                                 End If
                             Else
                                 SendDropItem(InvNum, 0)

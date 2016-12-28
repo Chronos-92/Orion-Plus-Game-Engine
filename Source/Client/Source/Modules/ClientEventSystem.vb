@@ -3187,65 +3187,65 @@ nextevent:
         'first render panel
         RenderTextures(EventChatGFX, GameWindow, EventChatX, EventChatY, 0, 0, EventChatGFXInfo.Width, EventChatGFXInfo.Height)
 
-        With frmMainGame
-            'face
-            If EventChatFace > 0 And EventChatFace < NumFaces Then
-                'render face
-                If FacesGFXInfo(EventChatFace).IsLoaded = False Then
-                    LoadTexture(EventChatFace, 7)
-                End If
+        'With frmMainGame
+        '    'face
+        '    If EventChatFace > 0 And EventChatFace < NumFaces Then
+        '        'render face
+        '        If FacesGFXInfo(EventChatFace).IsLoaded = False Then
+        '            LoadTexture(EventChatFace, 7)
+        '        End If
 
-                'seeying we still use it, lets update timer
-                With FacesGFXInfo(EventChatFace)
-                    .TextureTimer = GetTickCount() + 100000
-                End With
-                RenderTextures(FacesGFX(EventChatFace), GameWindow, EventChatX + 12, EventChatY + 14, 0, 0, FacesGFXInfo(EventChatFace).Width, FacesGFXInfo(EventChatFace).Height)
-                EventChatTextX = 113
-            Else
-                EventChatTextX = 14
-            End If
+        '        'seeying we still use it, lets update timer
+        '        With FacesGFXInfo(EventChatFace)
+        '            .TextureTimer = GetTickCount() + 100000
+        '        End With
+        '        RenderTextures(FacesGFX(EventChatFace), GameWindow, EventChatX + 12, EventChatY + 14, 0, 0, FacesGFXInfo(EventChatFace).Width, FacesGFXInfo(EventChatFace).Height)
+        '        EventChatTextX = 113
+        '    Else
+        '        EventChatTextX = 14
+        '    End If
 
-            'EventPrompt
-            txtArray = WordWrap(EventText, 45)
-            For i = 0 To txtArray.Count
-                If i = txtArray.Count Then Exit For
-                'draw text
-                DrawText(EventChatX + EventChatTextX, EventChatY + EventChatTextY + tmpY, Trim$(txtArray(i).Replace(vbCrLf, "")), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-                tmpY = tmpY + 20
-            Next
+        '    'EventPrompt
+        '    txtArray = WordWrap(EventText, 45)
+        '    For i = 0 To txtArray.Count
+        '        If i = txtArray.Count Then Exit For
+        '        'draw text
+        '        DrawText(EventChatX + EventChatTextX, EventChatY + EventChatTextY + tmpY, Trim$(txtArray(i).Replace(vbCrLf, "")), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '        tmpY = tmpY + 20
+        '    Next
 
-            If EventChatType = 1 Then
+        '    If EventChatType = 1 Then
 
-                If EventChoiceVisible(1) Then
-                    'Response1
-                    temptext = EventChoices(1)
-                    DrawText(EventChatX + 10, EventChatY + 124, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-                End If
+        '        If EventChoiceVisible(1) Then
+        '            'Response1
+        '            temptext = EventChoices(1)
+        '            DrawText(EventChatX + 10, EventChatY + 124, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '        End If
 
-                If EventChoiceVisible(2) Then
-                    'Response2
-                    temptext = EventChoices(2)
-                    DrawText(EventChatX + 10, EventChatY + 146, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-                End If
+        '        If EventChoiceVisible(2) Then
+        '            'Response2
+        '            temptext = EventChoices(2)
+        '            DrawText(EventChatX + 10, EventChatY + 146, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '        End If
 
-                If EventChoiceVisible(3) Then
-                    'Response3
-                    temptext = EventChoices(3)
-                    DrawText(EventChatX + 226, EventChatY + 124, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-                End If
+        '        If EventChoiceVisible(3) Then
+        '            'Response3
+        '            temptext = EventChoices(3)
+        '            DrawText(EventChatX + 226, EventChatY + 124, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '        End If
 
-                If EventChoiceVisible(4) Then
-                    'Response4
-                    temptext = EventChoices(4)
-                    DrawText(EventChatX + 226, EventChatY + 146, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-                End If
+        '        If EventChoiceVisible(4) Then
+        '            'Response4
+        '            temptext = EventChoices(4)
+        '            DrawText(EventChatX + 226, EventChatY + 146, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '        End If
 
-            Else
-                temptext = "- Devam -"
-                DrawText(EventChatX + 410, EventChatY + 156, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
-            End If
+        '    Else
+        '        temptext = "- Devam -"
+        '        DrawText(EventChatX + 410, EventChatY + 156, Trim(temptext), SFML.Graphics.Color.White, SFML.Graphics.Color.Black, GameWindow, 13)
+        '    End If
 
-        End With
+        'End With
 
     End Sub
 #End Region

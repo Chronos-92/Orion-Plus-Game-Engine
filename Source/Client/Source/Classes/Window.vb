@@ -1011,7 +1011,8 @@ Public Class Window : Inherits Game
         If GetPlayerSprite(Index) < 1 Or GetPlayerSprite(Index) > TexCharacters.Length Then
             TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - 16
         Else
-            TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - (CharacterGFXInfo(GetPlayerSprite(Index)).Height / 4) + 16
+            LoadTexture(TexCharacters(GetPlayerSprite(Index)))
+            TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - TexCharacters(GetPlayerSprite(Index)).Texture.Height / 4 + 16
         End If
 
         ' Draw name

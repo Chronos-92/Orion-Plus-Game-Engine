@@ -120,12 +120,6 @@
     <Compile Include="Source\Forms\frmEditor_MapEditor.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Source\Forms\frmMainGame.Designer.vb">
-      <DependentUpon>frmMainGame.vb</DependentUpon>
-    </Compile>
-    <Compile Include="Source\Forms\frmMainGame.vb">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Source\Forms\frmMenu.Designer.vb">
       <DependentUpon>frmMenu.vb</DependentUpon>
     </Compile>
@@ -189,9 +183,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Source\Forms\frmEditor_MapEditor.resx">
       <DependentUpon>frmEditor_MapEditor.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Source\Forms\frmMainGame.resx">
-      <DependentUpon>frmMainGame.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Source\Forms\frmMenu.resx">
       <DependentUpon>frmMenu.vb</DependentUpon>

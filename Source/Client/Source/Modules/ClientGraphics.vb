@@ -166,16 +166,6 @@ Module ClientGraphics
     End Structure
 
     Sub InitGraphics()
-
-        GameWindow = New RenderWindow(frmMainGame.picscreen.Handle)
-        GameWindow.SetFramerateLimit(FPS_LIMIT)
-
-        TmpItemWindow = New RenderWindow(frmMainGame.pnlTmpInv.Handle)
-
-        TmpBankItem = New RenderWindow(frmMainGame.pnlTempBank.Handle)
-
-        TmpSkillWindow = New RenderWindow(frmMainGame.pnlTmpSkill.Handle)
-
         SFMLGameFont = New SFML.Graphics.Font(Environment.GetFolderPath(Environment.SpecialFolder.Fonts) + "\" + FONT_NAME)
 
         'this stuff only loads when needed :)
@@ -1222,7 +1212,6 @@ Module ClientGraphics
     End Sub
 
     Public Sub DrawBlood(ByVal Index As Integer)
-        Dim dest As Point = New Point(frmMainGame.PointToScreen(frmMainGame.picscreen.Location))
         Dim srcrec As Rectangle
         Dim destrec As Rectangle
         Dim x As Integer
@@ -1296,7 +1285,7 @@ Module ClientGraphics
     Public Sub DrawMapFringeTile(ByVal X As Integer, ByVal Y As Integer)
         Dim i As Integer
         Dim srcrect As New Rectangle(0, 0, 0, 0)
-        Dim dest As Rectangle = New Rectangle(frmMainGame.PointToScreen(frmMainGame.picscreen.Location), New Size(32, 32))
+
         'Dim tmpSprite As Sprite
         If GettingMap Then Exit Sub
         If Map.Tile Is Nothing Then Exit Sub
@@ -1529,7 +1518,7 @@ Module ClientGraphics
         Dim X As Integer, Y As Integer, I As Integer
 
         'Don't Render IF
-        If frmMainGame.WindowState = FormWindowState.Minimized Then Exit Sub
+        Exit Sub
         If GettingMap Then Exit Sub
 
         'lets get going
@@ -2561,7 +2550,7 @@ Module ClientGraphics
         Dim itemnum As Integer, itempic As Integer
 
         itemnum = GetPlayerInvItemNum(MyIndex, DragInvSlotNum)
-        TmpItemWindow.Clear(ToSFMLColor(frmMainGame.pnlTmpInv.BackColor))
+        'TmpItemWindow.Clear(ToSFMLColor(frmMainGame.pnlTmpInv.BackColor))
         If itemnum > 0 And itemnum <= MAX_ITEMS Then
 
             itempic = Item(itemnum).Pic
@@ -2595,12 +2584,12 @@ Module ClientGraphics
             tmpSprite.Position = New Vector2f(0, 0)
             TmpItemWindow.Draw(tmpSprite)
 
-            With frmMainGame.pnlTmpInv
-                .Top = Y
-                .Left = X
-                .Visible = True
-                .BringToFront()
-            End With
+            'With frmMainGame.pnlTmpInv
+            '    .Top = Y
+            '    .Left = X
+            '    .Visible = True
+            '    .BringToFront()
+            'End With
 
         End If
         TmpItemWindow.Display()
@@ -2788,7 +2777,7 @@ NextLoop:
         Dim skillnum As Integer, skillpic As Integer
 
         skillnum = DragSkillSlotNum
-        TmpSkillWindow.Clear(ToSFMLColor(frmMainGame.pnlTmpSkill.BackColor))
+        'TmpSkillWindow.Clear(ToSFMLColor(frmMainGame.pnlTmpSkill.BackColor))
         If skillnum > 0 And skillnum <= MAX_SKILLS Then
             skillpic = Skill(skillnum).Icon
             If skillpic = 0 Then Exit Sub
@@ -2812,12 +2801,12 @@ NextLoop:
             tmpSprite.Position = New Vector2f(0, 0)
             TmpSkillWindow.Draw(tmpSprite)
 
-            With frmMainGame.pnlTmpSkill
-                .Top = Y
-                .Left = X
-                .Visible = True
-                .BringToFront()
-            End With
+            'With frmMainGame.pnlTmpSkill
+            '    .Top = Y
+            '    .Left = X
+            '    .Visible = True
+            '    .BringToFront()
+            'End With
 
         End If
         TmpSkillWindow.Display()
@@ -3034,18 +3023,18 @@ NextLoop:
             .Width = PIC_X
         End With
 
-        TmpBankItem.Clear(ToSFMLColor(frmMainGame.pnlTempBank.BackColor))
+        'TmpBankItem.Clear(ToSFMLColor(frmMainGame.pnlTempBank.BackColor))
         Dim tmpSprite As Sprite = New Sprite(ItemsGFX(Sprite))
         tmpSprite.TextureRect = New IntRect(sRECT.X, sRECT.Y, sRECT.Width, sRECT.Height)
         tmpSprite.Position = New Vector2f(dRECT.X, dRECT.Y)
         TmpBankItem.Draw(tmpSprite)
 
-        With frmMainGame.pnlTempBank
-            .Top = Y
-            .Left = X
-            .Visible = True
-            .BringToFront()
-        End With
+        'With frmMainGame.pnlTempBank
+        '    .Top = Y
+        '    .Left = X
+        '    .Visible = True
+        '    .BringToFront()
+        'End With
 
         TmpBankItem.Display()
 

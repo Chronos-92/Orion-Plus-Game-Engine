@@ -273,7 +273,7 @@ Module ClientText
                         End If
                     End If
                 Next
-                X = (frmMainGame.picscreen.Width \ 2) - ((Len(Trim$(ActionMsg(Index).message)) \ 2) * 8)
+                'X = (frmMainGame.picscreen.Width \ 2) - ((Len(Trim$(ActionMsg(Index).message)) \ 2) * 8)
                 y = 425
 
         End Select

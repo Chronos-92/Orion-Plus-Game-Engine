@@ -164,7 +164,7 @@ Module ClientGeneral
         vbQuote = Chr(34) ' "
 
         ' Update the form with the game's name before it's loaded
-        frmMainGame.Text = GAME_NAME
+        'frmMainGame.Text = GAME_NAME
 
         SetStatus("Loading Options...")
 
@@ -266,6 +266,7 @@ Module ClientGeneral
     Public Sub InitWindow()
         Dim w As New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
         w.Run()
+        DestroyGame()
     End Sub
 
     Sub GameInit()
@@ -390,9 +391,9 @@ Module ClientGeneral
         End If
 
         'then the window
-        frmMainGame.ClientSize = New Drawing.Size((SCREEN_MAPX) * PIC_X + PIC_X, (SCREEN_MAPY) * PIC_Y + PIC_Y)
-        frmMainGame.picscreen.Width = (SCREEN_MAPX) * PIC_X + PIC_X
-        frmMainGame.picscreen.Height = (SCREEN_MAPY) * PIC_Y + PIC_Y
+        'frmMainGame.ClientSize = New Drawing.Size((SCREEN_MAPX) * PIC_X + PIC_X, (SCREEN_MAPY) * PIC_Y + PIC_Y)
+        'frmMainGame.picscreen.Width = (SCREEN_MAPX) * PIC_X + PIC_X
+        'frmMainGame.picscreen.Height = (SCREEN_MAPY) * PIC_Y + PIC_Y
 
         HalfX = ((SCREEN_MAPX) \ 2) * PIC_X
         HalfY = ((SCREEN_MAPY) \ 2) * PIC_Y
@@ -405,10 +406,10 @@ Module ClientGeneral
 
         'chatwindow
         ChatWindowX = 1
-        ChatWindowY = frmMainGame.Height - ChatWindowGFXInfo.Height - 65
+        ChatWindowY = -ChatWindowGFXInfo.Height - 65
 
         MyChatX = 1
-        MyChatY = frmMainGame.Height - 60
+        MyChatY = -60
 
         'hotbar
         If Options.ScreenSize = 0 Then
@@ -416,24 +417,24 @@ Module ClientGeneral
             HotbarY = 5
         Else
             HotbarX = ChatWindowX + MyChatWindowGFXInfo.Width + 50
-            HotbarY = frmMainGame.Height - HotBarGFXInfo.Height - 45
+            HotbarY = -HotBarGFXInfo.Height - 45
         End If
 
         'action panel
-        ActionPanelX = frmMainGame.Width - ActionPanelGFXInfo.Width - 25
-        ActionPanelY = frmMainGame.Height - ActionPanelGFXInfo.Height - 45
+        ActionPanelX = -ActionPanelGFXInfo.Width - 25
+        ActionPanelY = -ActionPanelGFXInfo.Height - 45
 
         'Char Window
-        CharWindowX = frmMainGame.Width - CharPanelGFXInfo.Width - 26
-        CharWindowY = frmMainGame.Height - CharPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
+        CharWindowX = -CharPanelGFXInfo.Width - 26
+        CharWindowY = -CharPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
 
         'inv Window
-        InvWindowX = frmMainGame.Width - InvPanelGFXInfo.Width - 26
-        InvWindowY = frmMainGame.Height - InvPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
+        InvWindowX = -InvPanelGFXInfo.Width - 26
+        InvWindowY = -InvPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
 
         'skill window
-        SkillWindowX = frmMainGame.Width - SkillPanelGFXInfo.Width - 26
-        SkillWindowY = frmMainGame.Height - SkillPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
+        SkillWindowX = -SkillPanelGFXInfo.Width - 26
+        SkillWindowY = -SkillPanelGFXInfo.Height - ActionPanelGFXInfo.Height - 50
 
     End Sub
 

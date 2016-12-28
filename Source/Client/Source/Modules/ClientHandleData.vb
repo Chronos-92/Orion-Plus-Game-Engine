@@ -527,8 +527,8 @@
         Next
 
         ' changes to inventory, need to clear any drop menu
-        frmMainGame.pnlCurrency.Visible = False
-        frmMainGame.txtCurrency.Text = ""
+        'frmMainGame.pnlCurrency.Visible = False
+        'frmMainGame.txtCurrency.Text = ""
         tmpCurrencyItem = 0
         CurrencyMenu = 0 ' clear
 
@@ -557,8 +557,8 @@
         Player(MyIndex).RandInv(n).Speed = Buffer.ReadInteger
 
         ' changes, clear drop menu
-        frmMainGame.pnlCurrency.Visible = False
-        frmMainGame.txtCurrency.Text = ""
+        'frmMainGame.pnlCurrency.Visible = False
+        'frmMainGame.txtCurrency.Text = ""
         tmpCurrencyItem = 0
         CurrencyMenu = 0 ' clear
 
@@ -590,8 +590,8 @@
 
         ' changes to inventory, need to clear any drop menu
 
-        frmMainGame.pnlCurrency.Visible = False
-        frmMainGame.txtCurrency.Text = ""
+        'frmMainGame.pnlCurrency.Visible = False
+        'frmMainGame.txtCurrency.Text = ""
         tmpCurrencyItem = 0
         CurrencyMenu = 0 ' clear
 
@@ -1423,8 +1423,8 @@
         Buffer = Nothing
         ' changes to inventory, need to clear any drop menu
 
-        frmMainGame.pnlCurrency.Visible = False
-        frmMainGame.txtCurrency.Text = ""
+        'frmMainGame.pnlCurrency.Visible = False
+        'frmMainGame.txtCurrency.Text = ""
         tmpCurrencyItem = 0
         CurrencyMenu = 0 ' clear
 
@@ -2249,8 +2249,8 @@
 
         ' changes to inventory, need to clear any drop menu
 
-        frmMainGame.pnlCurrency.Visible = False
-        frmMainGame.txtCurrency.Text = ""
+        'frmMainGame.pnlCurrency.Visible = False
+        'frmMainGame.txtCurrency.Text = ""
         tmpCurrencyItem = 0
         CurrencyMenu = 0 ' clear
 

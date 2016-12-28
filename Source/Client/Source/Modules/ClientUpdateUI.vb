@@ -84,7 +84,7 @@
     'Set the Chat Position
 
     Public MyChatX As Integer = 1
-    Public MyChatY As Integer = frmMainGame.Height - 55
+    Public MyChatY As Integer =  - 55
 
     Public ChatWindowX As Integer = 1
     Public ChatWindowY As Integer = 705
@@ -280,7 +280,7 @@
         If UpdateNews = True Then
             frmMenu.lblNews.Text = News
             frmMenu.Text = GAME_NAME
-            frmMainGame.Text = GAME_NAME
+            'frmMainGame.Text = GAME_NAME
             UpdateNews = False
         End If
 

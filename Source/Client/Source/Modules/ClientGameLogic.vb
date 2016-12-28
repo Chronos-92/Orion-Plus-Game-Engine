@@ -7,8 +7,6 @@ Module ClientGameLogic
 
     Sub GameLoop()
         Dim i As Integer
-        Dim dest As Point = New Point(frmMainGame.PointToScreen(frmMainGame.picscreen.Location))
-        Dim g As Graphics = frmMainGame.picscreen.CreateGraphics
         Dim starttime As Integer, Tick As Integer, fogtmr As Integer
         Dim tmpfps As Integer, WalkTimer As Integer, FrameTime As Integer
         Dim destrect As Rectangle, tmr10000 As Integer
@@ -124,14 +122,14 @@ Module ClientGameLogic
                     If ShakeTimer < Tick Then
                         If ShakeCount < 10 Then
                             If LastDir = 0 Then
-                                frmMainGame.picscreen.Location = New Point(frmMainGame.picscreen.Location.X + 20, frmMainGame.picscreen.Location.Y)
+                                'frmMainGame.picscreen.Location = New Point(frmMainGame.picscreen.Location.X + 20, frmMainGame.picscreen.Location.Y)
                                 LastDir = 1
                             Else
-                                frmMainGame.picscreen.Location = New Point(frmMainGame.picscreen.Location.X - 20, frmMainGame.picscreen.Location.Y)
+                                'frmMainGame.picscreen.Location = New Point(frmMainGame.picscreen.Location.X - 20, frmMainGame.picscreen.Location.Y)
                                 LastDir = 0
                             End If
                         Else
-                            frmMainGame.picscreen.Location = New Point(0, 0)
+                            'frmMainGame.picscreen.Location = New Point(0, 0)
                             ShakeCount = 0
                             ShakeTimerEnabled = False
                         End If
@@ -253,7 +251,7 @@ Module ClientGameLogic
                     ProcessWeather()
 
                     'Auctual Game Loop Stuff :/
-                    Render_Graphics()
+                    ' Render_Graphics()
 
                     If FadeInSwitch = True Then
                         FadeIn()
@@ -263,14 +261,12 @@ Module ClientGameLogic
                         FadeOut()
                     End If
 
-                    If InMapEditor Then EditorMap_DrawTileset()
-
                     destrect = New Rectangle(0, 0, ScreenX, ScreenY)
                     Application.DoEvents()
 
                     If GettingMap Then
                         Dim font As New Font(Environment.GetFolderPath(Environment.SpecialFolder.Fonts) + "\" + FONT_NAME, FONT_SIZE)
-                        g.DrawString("Receiving Map...", font, Brushes.DarkCyan, frmMainGame.picscreen.Width - 130, 5)
+                        'g.DrawString("Receiving Map...", font, Brushes.DarkCyan, frmMainGame.picscreen.Width - 130, 5)
                     End If
 
                 End SyncLock
