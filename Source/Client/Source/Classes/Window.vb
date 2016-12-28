@@ -92,7 +92,12 @@ Public Class Window : Inherits Game
     End Sub
 
     Protected Overrides Sub UnloadContent()
-        ' TODO: Unload all our textures since we don't use Content.Load
+        ' Destroy all our textures.
+        DestroyTextures()
+
+        ' Destroy our devices.
+        View.Dispose()
+        Device.Dispose()
 
         MyBase.UnloadContent()      ' Do not touch!
     End Sub
@@ -357,6 +362,56 @@ Public Class Window : Inherits Game
                 T.Value.LastAccess = DateTime.MinValue
             End If
         Next
+    End Sub
+#End Region
+
+#Region "Destroy Data"
+    Private Sub DestroyTextures()
+        For Each x In TexTilesets
+            DestroyTexture(x)
+        Next
+        For Each x In TexCharacters
+            DestroyTexture(x)
+        Next
+        For Each x In TexAnimations
+            DestroyTexture(x)
+        Next
+        For Each x In TexEmotes
+            DestroyTexture(x)
+        Next
+        For Each x In TexFaces
+            DestroyTexture(x)
+        Next
+        For Each x In TexFog
+            DestroyTexture(x)
+        Next
+        For Each x In TexFurniture
+            DestroyTexture(x)
+        Next
+        For Each x In TexItems
+            DestroyTexture(x)
+        Next
+        For Each x In TexPaperdolls
+            DestroyTexture(x)
+        Next
+        For Each x In TexProjectiles
+            DestroyTexture(x)
+        Next
+        For Each x In TexResources
+            DestroyTexture(x)
+        Next
+        For Each x In TexSkillicons
+            DestroyTexture(x)
+        Next
+        For Each x In TexMisc
+            DestroyTexture(x.Value)
+        Next
+    End Sub
+    Private Sub DestroyTexture(ByRef Texture As TextureRec)
+        If Not Texture Is Nothing AndAlso Not Texture.Texture Is Nothing Then
+            Texture.Texture.Dispose()
+            Texture = Nothing
+        End If
     End Sub
 #End Region
 
