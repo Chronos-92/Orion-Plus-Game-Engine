@@ -22,6 +22,7 @@ Public Class Window : Inherits Game
     Private Viewport As Camera2D
     Private ViewPortX As List(Of Integer)
     Private ViewPortY As List(Of Integer)
+    Private FrameRate As Integer
 
     ' Location Variables
     Private AppLocation As String
@@ -63,8 +64,8 @@ Public Class Window : Inherits Game
         Device.IsFullScreen = Fullscreen
 
         ' Stop limiting us to 60fps!
-        Device.SynchronizeWithVerticalRetrace = False
-        IsFixedTimeStep = False
+        ' Device.SynchronizeWithVerticalRetrace = False
+        ' IsFixedTimeStep = False
 
         ' Apply our settings.
         Device.ApplyChanges()
@@ -114,7 +115,7 @@ Public Class Window : Inherits Game
     Protected Overrides Sub Update(Time As GameTime)
 
         ' Update our camera position.
-        UpdateCamera()
+        UpdateCamera(Time)
 
         ' Unload all our unused textures.
         UnloadTextures()
@@ -129,6 +130,9 @@ Public Class Window : Inherits Game
             Device.ApplyChanges()
             HasBeenResized = False
         End If
+
+        ' Update Framerate
+        FrameRate = CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)
 
         MyBase.Update(Time) '   Do not touch
     End Sub
@@ -246,7 +250,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw debug info
-        DrawText(String.Format("Framerate: {0}", CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)), 10, New Vector2(5, 5), Color.Yellow, Color.Black, True)
+        DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, True)
         DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
@@ -1074,7 +1078,7 @@ Public Class Window : Inherits Game
 #End Region
 
 #Region "Logic Updates"
-    Private Sub UpdateCamera()
+    Private Sub UpdateCamera(ByVal Time As GameTime)
         Dim CenterX As Integer
         Dim CenterY As Integer
 
@@ -1091,14 +1095,16 @@ Public Class Window : Inherits Game
         End If
 
         ' Smooth Camera 
-        CameraAddValues(CenterX, CenterY)
-        Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
+        CameraAddValues(CenterX, CenterY, Time)
+        If ViewPortX.Count() > 1 AndAlso ViewPortY.Count() > 1 Then Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
     End Sub
-    Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer)
+    Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer, ByVal Time As GameTime)
+        If Time.ElapsedGameTime.TotalSeconds = 0 Then Exit Sub
+        Dim MaxEntries = FrameRate / 5
         ViewPortX.Add(X)
-        If ViewPortX.Count() > 8 Then ViewPortX.Remove(ViewPortX.First())
+        If ViewPortX.Count() > MaxEntries Then ViewPortX.Remove(ViewPortX.First())
         ViewPortY.Add(Y)
-        If ViewPortY.Count() > 8 Then ViewPortY.Remove(ViewPortY.First())
+        If ViewPortY.Count() > MaxEntries Then ViewPortY.Remove(ViewPortY.First())
     End Sub
 #End Region
 

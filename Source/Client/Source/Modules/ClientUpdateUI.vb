@@ -345,10 +345,6 @@
             End If
         End If
 
-        If frmmaingamevisible <> frmMainGame.Visible Then
-            frmMainGame.Visible = frmmaingamevisible
-        End If
-
         If InitCrafting = True Then
             CraftingInit()
             InitCrafting = False
