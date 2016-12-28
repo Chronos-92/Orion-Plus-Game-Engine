@@ -1098,6 +1098,8 @@ Public Class Window : Inherits Game
         ' Smooth Camera 
         CameraAddValues(CenterX, CenterY, Time)
         If ViewPortX.Count() > 1 AndAlso ViewPortY.Count() > 1 Then Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
+        ' Do not ever allow the camera to sit on float values, it will go funky real quick!
+        Viewport.Position = New Vector2(CType(Viewport.Position.X, Integer), CType(Viewport.Position.Y, Integer))
     End Sub
     Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer, ByVal Time As GameTime)
         If Time.ElapsedGameTime.TotalSeconds = 0 Then Exit Sub
