@@ -1,7 +1,6 @@
 ﻿Imports System.IO
 Imports System.Windows.Forms
 Imports Microsoft.Xna.Framework
-Imports Microsoft.Xna.Framework.Content
 Imports Microsoft.Xna.Framework.Graphics
 Imports Microsoft.Xna.Framework.Input
 
@@ -24,18 +23,18 @@ Public Class Window : Inherits Game
     Private AppLocation As String
 
     ' Textures
-    Private Animations() As TextureRec
-    Private Characters() As TextureRec
-    Private Tilesets() As TextureRec
-    Private Emotes() As TextureRec
-    Private Faces() As TextureRec
-    Private Fog() As TextureRec
-    Private Furniture() As TextureRec
-    Private Items() As TextureRec
-    Private Paperdolls() As TextureRec
-    Private Projectiles() As TextureRec
-    Private Resources() As TextureRec
-    Private Skillicons() As TextureRec
+    Private TexAnimations() As TextureRec
+    Private TexCharacters() As TextureRec
+    Private TexTilesets() As TextureRec
+    Private TexEmotes() As TextureRec
+    Private TexFaces() As TextureRec
+    Private TexFog() As TextureRec
+    Private TexFurniture() As TextureRec
+    Private TexItems() As TextureRec
+    Private TexPaperdolls() As TextureRec
+    Private TexProjectiles() As TextureRec
+    Private TexResources() As TextureRec
+    Private TexSkillicons() As TextureRec
 
     ' Fonts
     Private GameFonts As Dictionary(Of Integer, SpriteFont)
@@ -105,6 +104,9 @@ Public Class Window : Inherits Game
         ' Unload all our unused textures.
         UnloadTextures()
 
+        ' Keyboard input
+        HandleKeyboard()
+
         ' If we have to, resize our backbuffer.
         If HasBeenResized Then
             Device.PreferredBackBufferWidth = Window.ClientBounds.Width
@@ -112,6 +114,8 @@ Public Class Window : Inherits Game
             Device.ApplyChanges()
             HasBeenResized = False
         End If
+
+        MyBase.Update(Time) '   Do not touch
     End Sub
 
     Protected Overrides Sub Draw(Time As GameTime)
@@ -127,11 +131,16 @@ Public Class Window : Inherits Game
                 DrawMapLayer(Layer)
             Next
 
-            ' Draw our animations that go below players.
+            ' Furniture
+            If FurnitureHouse > 0 AndAlso FurnitureHouse = Player(MyIndex).InHouse AndAlso FurnitureCount > 0 Then
+                For I = 1 To FurnitureCount
+                    If Furniture(I).ItemNum > 0 Then DrawFurniture(I, 0)
+                Next
+            End If
+
+            ' Draw our animations that go below our characters.
             For I = 1 To Byte.MaxValue
-                If AnimInstance(I).Used(0) Then
-                    DrawAnimation(I, 0)
-                End If
+                If AnimInstance(I).Used(0) Then DrawAnimation(I, 0)
             Next
 
             ' Y based rendering, so things overlap accordingly.
@@ -139,18 +148,22 @@ Public Class Window : Inherits Game
 
                 ' Players
                 For i = 1 To MAX_PLAYERS
-                    If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) Then
-                        If Player(i).Y = Y Then
-                            DrawPlayer(i)
-                        End If
-                        If PetAlive(i) Then
-                            If Player(i).Pet.Y = Y Then
-                                ' DrawPet(I)
-                            End If
-                        End If
+                    If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) AndAlso Player(i).Y = Y Then
+                        DrawPlayer(i)
+                        ' TODO: Draw emotes and paperdoll
+                    End If
+                    If PetAlive(i) AndAlso Player(i).Pet.Y = Y Then
+                        DrawPet(i)
                     End If
                 Next
 
+                ' Npcs
+                For i = 1 To MAX_MAP_NPCS
+                    If MapNpc(i).Num > 0 AndAlso MapNpc(i).Vital(Vitals.HP) > 0 AndAlso MapNpc(i).Y = Y Then
+                        DrawMapNpc(i)
+                        ' TODO: Draw emotes
+                    End If
+                Next
             Next
 
             ' Draw our top layers.
@@ -158,9 +171,22 @@ Public Class Window : Inherits Game
                 DrawMapLayer(Layer)
             Next
 
+            ' Furniture
+            If FurnitureHouse > 0 AndAlso FurnitureHouse = Player(MyIndex).InHouse AndAlso FurnitureCount > 0 Then
+                For I = 1 To FurnitureCount
+                    If Furniture(I).ItemNum > 0 Then DrawFurniture(I, 1)
+                Next
+            End If
+
+            ' Draw names
             For i = 1 To MAX_PLAYERS
                 If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) Then
                     DrawPlayerName(i, 10)
+                End If
+            Next
+            For i = 1 To MAX_MAP_NPCS
+                If MapNpc(i).Num > 0 And MapNpc(i).Vital(Vitals.HP) > 0 Then
+                    DrawMapNpcName(i, 10)
                 End If
             Next
 
@@ -168,6 +194,8 @@ Public Class Window : Inherits Game
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
+
+        MyBase.Draw(Time)   ' Do not touch.
     End Sub
 
     Private Sub HandleClientSizeChanged(sender As Object, e As EventArgs)
@@ -179,18 +207,18 @@ Public Class Window : Inherits Game
     Private Sub InitTextures()
         Dim Dir = Path.Combine(AppLocation, "Data Files", "Graphics")
         ' InitTilesets(Dir)
-        InitGraphics(Path.Combine(Dir, "Tilesets"), Tilesets)
-        InitGraphics(Path.Combine(Dir, "Characters"), Characters)
-        InitGraphics(Path.Combine(Dir, "Animations"), Animations)
-        InitGraphics(Path.Combine(Dir, "Emotes"), Emotes)
-        InitGraphics(Path.Combine(Dir, "Faces"), Faces)
-        InitGraphics(Path.Combine(Dir, "Fog"), Fog)
-        InitGraphics(Path.Combine(Dir, "Furniture"), Furniture)
-        InitGraphics(Path.Combine(Dir, "Items"), Items)
-        InitGraphics(Path.Combine(Dir, "Paperdolls"), Paperdolls)
-        InitGraphics(Path.Combine(Dir, "Projectiles"), Projectiles)
-        InitGraphics(Path.Combine(Dir, "Resources"), Resources)
-        InitGraphics(Path.Combine(Dir, "Skillicons"), Skillicons)
+        InitGraphics(Path.Combine(Dir, "Tilesets"), TexTilesets)
+        InitGraphics(Path.Combine(Dir, "Characters"), TexCharacters)
+        InitGraphics(Path.Combine(Dir, "Animations"), TexAnimations)
+        InitGraphics(Path.Combine(Dir, "Emotes"), TexEmotes)
+        InitGraphics(Path.Combine(Dir, "Faces"), TexFaces)
+        InitGraphics(Path.Combine(Dir, "Fog"), TexFog)
+        InitGraphics(Path.Combine(Dir, "Furniture"), TexFurniture)
+        InitGraphics(Path.Combine(Dir, "Items"), TexItems)
+        InitGraphics(Path.Combine(Dir, "Paperdolls"), TexPaperdolls)
+        InitGraphics(Path.Combine(Dir, "Projectiles"), TexProjectiles)
+        InitGraphics(Path.Combine(Dir, "Resources"), TexResources)
+        InitGraphics(Path.Combine(Dir, "Skillicons"), TexSkillicons)
     End Sub
 
     Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
@@ -255,18 +283,18 @@ Public Class Window : Inherits Game
 
 #Region "Unloading Data"
     Private Sub UnloadTextures()
-        UnloadGraphics(Tilesets)
-        UnloadGraphics(Characters)
-        UnloadGraphics(Animations)
-        UnloadGraphics(Emotes)
-        UnloadGraphics(Faces)
-        UnloadGraphics(Fog)
-        UnloadGraphics(Furniture)
-        UnloadGraphics(Items)
-        UnloadGraphics(Paperdolls)
-        UnloadGraphics(Projectiles)
-        UnloadGraphics(Resources)
-        UnloadGraphics(Skillicons)
+        UnloadGraphics(TexTilesets)
+        UnloadGraphics(TexCharacters)
+        UnloadGraphics(TexAnimations)
+        UnloadGraphics(TexEmotes)
+        UnloadGraphics(TexFaces)
+        UnloadGraphics(TexFog)
+        UnloadGraphics(TexFurniture)
+        UnloadGraphics(TexItems)
+        UnloadGraphics(TexPaperdolls)
+        UnloadGraphics(TexProjectiles)
+        UnloadGraphics(TexResources)
+        UnloadGraphics(TexSkillicons)
     End Sub
 
     Private Sub UnloadGraphics(ByRef Array() As TextureRec)
@@ -294,7 +322,7 @@ Public Class Window : Inherits Game
         With Map.Tile(X, Y).Layer(Layer)
             Select Case Autotile(X, Y).Layer(Layer).renderState
                 Case RENDER_STATE_NORMAL
-                    RenderTexture(Tilesets(Map.Tile(X, Y).Layer(Layer).Tileset), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), New Rectangle(Map.Tile(X, Y).Layer(Layer).X * PIC_X, Map.Tile(X, Y).Layer(Layer).Y * PIC_Y, PIC_X, PIC_Y))
+                    RenderTexture(TexTilesets(Map.Tile(X, Y).Layer(Layer).Tileset), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), New Rectangle(Map.Tile(X, Y).Layer(Layer).X * PIC_X, Map.Tile(X, Y).Layer(Layer).Y * PIC_Y, PIC_X, PIC_Y))
                 Case RENDER_STATE_AUTOTILE
                     DrawAutoTile(Layer, ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y), 1, X, Y, 0, False)
                     DrawAutoTile(Layer, ConvertMapX(X * PIC_X) + 16, ConvertMapY(Y * PIC_Y), 2, X, Y, 0, False)
@@ -337,7 +365,45 @@ Public Class Window : Inherits Game
         End Select
 
         ' Draw the quarter
-        RenderTexture(Tilesets(Map.Tile(X, Y).Layer(layerNum).Tileset), New Vector2(destX, destY), New Rectangle(Autotile(X, Y).Layer(layerNum).srcX(quarterNum) + XOffset, Autotile(X, Y).Layer(layerNum).srcY(quarterNum) + YOffset, 16, 16))
+        RenderTexture(TexTilesets(Map.Tile(X, Y).Layer(layerNum).Tileset), New Vector2(destX, destY), New Rectangle(Autotile(X, Y).Layer(layerNum).srcX(quarterNum) + XOffset, Autotile(X, Y).Layer(layerNum).srcY(quarterNum) + YOffset, 16, 16))
+
+    End Sub
+    Public Sub DrawFurniture(ByVal Index As Integer, Layer As Integer)
+        Dim i As Integer, ItemNum As Integer
+        Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, X1 As Integer, Y1 As Integer
+
+        ItemNum = Furniture(Index).ItemNum
+
+        If Item(ItemNum).Type <> ItemType.Furniture Then Exit Sub
+
+        i = Item(ItemNum).Data2
+
+        LoadTexture(TexFurniture(i))
+
+        Width = Item(ItemNum).FurnitureWidth
+        Height = Item(ItemNum).FurnitureHeight
+
+        If Width > 4 Then Width = 4
+        If Height > 4 Then Height = 4
+        If i <= 0 Or i > TexFurniture.Length Then Exit Sub
+
+        ' make sure it's not out of map
+        If Furniture(Index).X > Map.MaxX Then Exit Sub
+        If Furniture(Index).Y > Map.MaxY Then Exit Sub
+
+        For X1 = 0 To Width - 1
+            For Y1 = 0 To Height
+                If Item(Furniture(Index).ItemNum).FurnitureFringe(X1, Y1) = Layer Then
+                    ' Set base x + y, then the offset due to size
+                    X = (Furniture(Index).X * 32) + (X1 * 32)
+                    Y = (Furniture(Index).Y * 32 - (Height * 32)) + (Y1 * 32)
+                    X = ConvertMapX(X)
+                    Y = ConvertMapY(Y)
+
+                    RenderTexture(TexFurniture(i), New Vector2(X, Y), New Rectangle(0 + (X1 * 32), 0 + (Y1 * 32), 32, 32))
+                End If
+            Next
+        Next
 
     End Sub
     Private Sub DrawAnimation(ByVal Index As Integer, ByVal Layer As Integer)
@@ -352,13 +418,13 @@ Public Class Window : Inherits Game
         Dim FrameCount = Animation(AnimInstance(Index).Animation).Frames(Layer)
 
         ' Can we actually render this?
-        If Tex < 1 Or Tex > Animations.Length Then Exit Sub
+        If Tex < 1 Or Tex > TexAnimations.Length Then Exit Sub
         If FrameCount <= 0 Then Exit Sub
-        If Animations(Tex).Texture Is Nothing Then LoadTexture(Animations(Tex))
+        If TexAnimations(Tex).Texture Is Nothing Then LoadTexture(TexAnimations(Tex))
 
         ' Get our source frame.
-        Dim Width = Animations(Tex).Texture.Width
-        Dim Height = Animations(Tex).Texture.Height
+        Dim Width = TexAnimations(Tex).Texture.Width
+        Dim Height = TexAnimations(Tex).Texture.Height
         Dim Source = New Rectangle((AnimInstance(Index).FrameIndex(Layer) - 1) * (Width / FrameCount), 0, Width / FrameCount, Height)
 
         ' Lock our animation to a target if we have to.
@@ -367,14 +433,14 @@ Public Class Window : Inherits Game
         Dim LockIndex = AnimInstance(Index).lockindex
         Select Case AnimInstance(Index).LockType
             Case TargetType.None
-                X = (AnimInstance(Index).X * 32) + 16 - (width / 2)
-                Y = (AnimInstance(Index).Y * 32) + 16 - (height / 2)
+                X = (AnimInstance(Index).X * 32) + 16 - (Width / 2)
+                Y = (AnimInstance(Index).Y * 32) + 16 - (Height / 2)
 
             Case TargetType.Npc
                 ' Make sure it's a valid Npc.
-                If MapNpc(lockindex).Num > 0 AndAlso MapNpc(lockindex).Vital(Vitals.HP) > 0 Then
-                    X = (MapNpc(lockindex).X * PIC_X) + 16 - (width / 2) + MapNpc(lockindex).XOffset
-                    Y = (MapNpc(lockindex).Y * PIC_Y) + 16 - (height / 2) + MapNpc(lockindex).YOffset
+                If MapNpc(LockIndex).Num > 0 AndAlso MapNpc(LockIndex).Vital(Vitals.HP) > 0 Then
+                    X = (MapNpc(LockIndex).X * PIC_X) + 16 - (Width / 2) + MapNpc(LockIndex).XOffset
+                    Y = (MapNpc(LockIndex).Y * PIC_Y) + 16 - (Height / 2) + MapNpc(LockIndex).YOffset
                 Else
                     ' This animation is not valid. Clear it.
                     ClearAnimInstance(Index)
@@ -383,9 +449,9 @@ Public Class Window : Inherits Game
 
             Case TargetType.Player
                 ' Is this player still on our map?
-                If GetPlayerMap(lockindex) = GetPlayerMap(MyIndex) Then
-                    X = (GetPlayerX(lockindex) * PIC_X) + 16 - (width / 2) + Player(lockindex).XOffset
-                    Y = (GetPlayerY(lockindex) * PIC_Y) + 16 - (height / 2) + Player(lockindex).YOffset
+                If GetPlayerMap(LockIndex) = GetPlayerMap(MyIndex) Then
+                    X = (GetPlayerX(LockIndex) * PIC_X) + 16 - (Width / 2) + Player(LockIndex).XOffset
+                    Y = (GetPlayerY(LockIndex) * PIC_Y) + 16 - (Height / 2) + Player(LockIndex).YOffset
                 End If
 
             Case TargetType.Pet
@@ -399,15 +465,15 @@ Public Class Window : Inherits Game
                 Throw New NotImplementedException()
         End Select
 
-        RenderTexture(Animations(Tex), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
+        RenderTexture(TexAnimations(Tex), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
     End Sub
     Private Sub DrawPlayer(ByVal Index As Integer)
         ' Make sure our sprite is valid.
         Dim Spritenum = GetPlayerSprite(Index)
-        If Spritenum < 1 Or Spritenum > NumCharacters Then Exit Sub
+        If Spritenum < 1 Or Spritenum > TexCharacters.Length Then Exit Sub
 
         ' Make sure our sprite exists.
-        If Characters(Spritenum).Texture Is Nothing Then LoadTexture(Characters(Spritenum))
+        If TexCharacters(Spritenum).Texture Is Nothing Then LoadTexture(TexCharacters(Spritenum))
 
         ' Get wich frame we have to use.
         Dim Frame = 0
@@ -429,21 +495,179 @@ Public Class Window : Inherits Game
                 If Frame = 0 AndAlso Player(Index).XOffset < -8 Then Frame = Player(Index).Steps
                 FrameRow = 2
         End Select
-        Dim Source = New Rectangle((Frame) * (Characters(Spritenum).Texture.Width / 4), FrameRow * (Characters(Spritenum).Texture.Height / 4), (Characters(Spritenum).Texture.Width / 4), (Characters(Spritenum).Texture.Height / 4))
+        Dim Source = New Rectangle((Frame) * (TexCharacters(Spritenum).Texture.Width / 4), FrameRow * (TexCharacters(Spritenum).Texture.Height / 4), (TexCharacters(Spritenum).Texture.Width / 4), (TexCharacters(Spritenum).Texture.Height / 4))
 
-        Dim X = GetPlayerX(Index) * PIC_X + Player(Index).XOffset - ((Characters(Spritenum).Texture.Width / 4 - 32) / 2)
+        Dim X = GetPlayerX(Index) * PIC_X + Player(Index).XOffset - ((TexCharacters(Spritenum).Texture.Width / 4 - 32) / 2)
         Dim Y As Integer
-        If Characters(Spritenum).Texture.Height > 32 Then
-            Y = GetPlayerY(Index) * PIC_Y + Player(Index).YOffset - ((Characters(Spritenum).Texture.Height / 4) - 32)
+        If TexCharacters(Spritenum).Texture.Height > 32 Then
+            Y = GetPlayerY(Index) * PIC_Y + Player(Index).YOffset - ((TexCharacters(Spritenum).Texture.Height / 4) - 32)
         Else
             Y = GetPlayerY(Index) * PIC_Y + Player(Index).YOffset
         End If
 
         ' render the actual sprite
-        RenderTexture(Characters(Spritenum), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
+        RenderTexture(TexCharacters(Spritenum), New Vector2(ConvertMapX(X), ConvertMapY(Y)), Source)
     End Sub
-    Private Sub DrawMapNpc(ByVal Index As Integer)
+    Public Sub DrawPet(ByVal Index As Integer)
+        Dim Anim As Byte, X As Integer, Y As Integer
+        Dim Sprite As Integer, spriteleft As Integer
+        Dim srcrec As Rectangle
+        Dim attackspeed As Integer
 
+        Sprite = Pet(Player(Index).Pet.Num).Sprite
+
+        If Sprite < 1 Or Sprite > TexCharacters.Length Then Exit Sub
+
+        attackspeed = 1000
+
+        ' Reset frame
+        If Player(Index).Pet.Steps = 3 Then
+            Anim = 0
+        ElseIf Player(Index).Pet.Steps = 1 Then
+            Anim = 2
+        ElseIf Player(Index).Pet.Steps = 2 Then
+            Anim = 3
+        End If
+
+        ' Check for attacking animation
+        If Player(Index).Pet.AttackTimer + (attackspeed / 2) > GetTickCount() Then
+            If Player(Index).Pet.Attacking = 1 Then
+                Anim = 3
+            End If
+        Else
+            ' If not attacking, walk normally
+            Select Case Player(Index).Pet.dir
+                Case Direction.Up
+                    If (Player(Index).Pet.YOffset > 8) Then Anim = Player(Index).Pet.Steps
+                Case Direction.Down
+                    If (Player(Index).Pet.YOffset < -8) Then Anim = Player(Index).Pet.Steps
+                Case Direction.Left
+                    If (Player(Index).Pet.XOffset > 8) Then Anim = Player(Index).Pet.Steps
+                Case Direction.Right
+                    If (Player(Index).Pet.XOffset < -8) Then Anim = Player(Index).Pet.Steps
+            End Select
+        End If
+
+        ' Check to see if we want to stop making him attack
+        With Player(Index).Pet
+            If .AttackTimer + attackspeed < GetTickCount() Then
+                .Attacking = 0
+                .AttackTimer = 0
+            End If
+        End With
+
+        ' Set the left
+        Select Case Player(Index).Pet.dir
+            Case Direction.Up
+                spriteleft = 3
+            Case Direction.Right
+                spriteleft = 2
+            Case Direction.Down
+                spriteleft = 0
+            Case Direction.Left
+                spriteleft = 1
+        End Select
+
+        ' Make sure that our sprite is loaded.
+        LoadTexture(TexCharacters(Sprite))
+
+        srcrec = New Rectangle((Anim) * (TexCharacters(Sprite).Texture.Width / 4), spriteleft * (TexCharacters(Sprite).Texture.Height / 4), (TexCharacters(Sprite).Texture.Width / 4), (TexCharacters(Sprite).Texture.Height / 4))
+
+        ' Calculate the X
+        X = Player(Index).Pet.X * PIC_X + Player(Index).Pet.XOffset - (TexCharacters(Sprite).Texture.Width / 4 - 32) / 2
+
+        ' Is the player's height more than 32..?
+        If (TexCharacters(Sprite).Texture.Height / 4) > 32 Then
+            ' Create a 32 pixel offset for larger sprites
+            Y = Player(Index).Pet.Y * PIC_Y + Player(Index).Pet.YOffset - (TexCharacters(Sprite).Texture.Width / 4) - 32
+        Else
+            ' Proceed as normal
+            Y = Player(Index).Pet.Y * PIC_Y + Player(Index).Pet.YOffset
+        End If
+
+        ' render the actual sprite
+        RenderTexture(TexCharacters(Sprite), New Vector2(ConvertMapX(X), ConvertMapY(Y)), srcrec)
+
+    End Sub
+    Private Sub DrawMapNpc(ByVal MapNpcNum As Integer)
+        Dim anim As Byte
+        Dim X As Integer
+        Dim Y As Integer
+        Dim Sprite As Integer, spriteleft As Integer
+        Dim destrec As Rectangle
+        Dim srcrec As Rectangle
+        Dim attackspeed As Integer
+
+        If MapNpc(MapNpcNum).Num = 0 Then Exit Sub ' no npc set
+
+        Sprite = Npc(MapNpc(MapNpcNum).Num).Sprite
+
+        If Sprite < 1 Or Sprite > TexCharacters.Length Then Exit Sub
+
+        attackspeed = 1000
+
+        ' Reset frame
+        anim = 0
+
+        ' Check for attacking animation
+        If MapNpc(MapNpcNum).AttackTimer + (attackspeed / 2) > GetTickCount() Then
+            If MapNpc(MapNpcNum).Attacking = 1 Then
+                anim = 3
+            End If
+        Else
+            ' If not attacking, walk normally
+            Select Case MapNpc(MapNpcNum).Dir
+                Case Direction.Up
+                    If (MapNpc(MapNpcNum).YOffset > 8) Then anim = MapNpc(MapNpcNum).Steps
+                Case Direction.Down
+                    If (MapNpc(MapNpcNum).YOffset < -8) Then anim = MapNpc(MapNpcNum).Steps
+                Case Direction.Left
+                    If (MapNpc(MapNpcNum).XOffset > 8) Then anim = MapNpc(MapNpcNum).Steps
+                Case Direction.Right
+                    If (MapNpc(MapNpcNum).XOffset < -8) Then anim = MapNpc(MapNpcNum).Steps
+            End Select
+        End If
+
+        ' Check to see if we want to stop making him attack
+        With MapNpc(MapNpcNum)
+            If .AttackTimer + attackspeed < GetTickCount() Then
+                .Attacking = 0
+                .AttackTimer = 0
+            End If
+        End With
+
+        ' Set the left
+        Select Case MapNpc(MapNpcNum).Dir
+            Case Direction.Up
+                spriteleft = 3
+            Case Direction.Right
+                spriteleft = 2
+            Case Direction.Down
+                spriteleft = 0
+            Case Direction.Left
+                spriteleft = 1
+        End Select
+
+        ' Make sure our texture is loaded.
+        LoadTexture(TexCharacters(Sprite))
+
+        srcrec = New Rectangle((anim) * (TexCharacters(Sprite).Texture.Width / 4), spriteleft * (TexCharacters(Sprite).Texture.Height / 4), (TexCharacters(Sprite).Texture.Width / 4), (TexCharacters(Sprite).Texture.Height / 4))
+
+        ' Calculate the X
+        X = MapNpc(MapNpcNum).X * PIC_X + MapNpc(MapNpcNum).XOffset - ((TexCharacters(Sprite).Texture.Width / 4 - 32) / 2)
+
+        ' Is the player's height more than 32..?
+        If (TexCharacters(Sprite).Texture.Height / 4) > 32 Then
+            ' Create a 32 pixel offset for larger sprites
+            Y = MapNpc(MapNpcNum).Y * PIC_Y + MapNpc(MapNpcNum).YOffset - ((TexCharacters(Sprite).Texture.Height / 4) - 32)
+        Else
+            ' Proceed as normal
+            Y = MapNpc(MapNpcNum).Y * PIC_Y + MapNpc(MapNpcNum).YOffset
+        End If
+
+        destrec = New Rectangle(X, Y, TexCharacters(Sprite).Texture.Width / 4, TexCharacters(Sprite).Texture.Height / 4)
+
+        RenderTexture(TexCharacters(Sprite), New Vector2(ConvertMapX(X), ConvertMapY(Y)), srcrec)
     End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
@@ -476,7 +700,7 @@ Public Class Window : Inherits Game
         Name = GetPlayerName(Index).Trim()
         TextX = GetPlayerX(Index) * PIC_X + Player(Index).XOffset + (PIC_X \ 2)
         TextX = TextX - (GameFonts(Size).MeasureString(Name).X / 2)
-        If GetPlayerSprite(Index) < 1 Or GetPlayerSprite(Index) > NumCharacters Then
+        If GetPlayerSprite(Index) < 1 Or GetPlayerSprite(Index) > TexCharacters.Length Then
             TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - 16
         Else
             TextY = (GetPlayerY(Index) * PIC_Y) + Player(Index).YOffset - (CharacterGFXInfo(GetPlayerSprite(Index)).Height / 4) + 16
@@ -484,6 +708,36 @@ Public Class Window : Inherits Game
 
         ' Draw name
         Call DrawText(Name, Size, New Vector2(ConvertMapX(TextX), ConvertMapY(TextY)), Color, BackColor)
+    End Sub
+    Private Sub DrawMapNpcName(ByVal Index As Integer, ByVal Size As Integer)
+        Dim TextX As Integer
+        Dim TextY As Integer
+        Dim color As Color, backcolor As Color
+        Dim npcNum As Integer
+
+        npcNum = MapNpc(Index).Num
+
+        Select Case Npc(npcNum).Behaviour
+            Case 0 ' attack on sight
+                color = Color.Red
+                backcolor = Color.Black
+            Case 1, 4 ' attack when attacked + guard
+                color = Color.Green
+                backcolor = Color.Black
+            Case 2, 3, 5 ' friendly + shopkeeper + quest
+                color = Color.Yellow
+                backcolor = Color.Black
+        End Select
+
+        TextX = ConvertMapX(MapNpc(Index).X * PIC_X) + MapNpc(Index).XOffset + (PIC_X \ 2) - getTextWidth((Trim$(Npc(npcNum).Name))) / 2
+        If Npc(npcNum).Sprite < 1 Or Npc(npcNum).Sprite > TexCharacters.Length Then
+            TextY = ConvertMapY(MapNpc(Index).Y * PIC_Y) + MapNpc(Index).YOffset - 16
+        Else
+            TextY = ConvertMapY(MapNpc(Index).Y * PIC_Y) + MapNpc(Index).YOffset - (CharacterGFXInfo(Npc(npcNum).Sprite).Height / 4) + 16
+        End If
+
+        ' Draw name
+        DrawText(Npc(npcNum).Name.Trim(), Size, New Vector2(TextX, TextY), color, backcolor)
     End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
@@ -513,14 +767,13 @@ Public Class Window : Inherits Game
 #Region "Logic Updates"
 
     Private Sub UpdateCamera()
-
         If Device.PreferredBackBufferWidth > Map.MaxX * PIC_X Then
             RenderOffset.X = (Device.PreferredBackBufferWidth - (Map.MaxX * PIC_X)) / 2 - 16
         Else
             RenderOffset.X = (Device.PreferredBackBufferWidth / 2) - ((Player(MyIndex).X * PIC_X) + Player(MyIndex).XOffset)
         End If
 
-        If Device.PreferredBackBufferHeight > Map.MaxY * PIC_X Then
+        If Device.PreferredBackBufferHeight > Map.MaxY * PIC_Y Then
             RenderOffset.Y = (Device.PreferredBackBufferHeight - (Map.MaxY * PIC_Y)) / 2
         Else
             RenderOffset.Y = (Device.PreferredBackBufferHeight / 2) - ((Player(MyIndex).Y * PIC_Y) + Player(MyIndex).YOffset)
@@ -532,6 +785,33 @@ Public Class Window : Inherits Game
     Private Function ConvertMapY(ByVal Y As Integer) As Integer
         ConvertMapY = Y + RenderOffset.Y
     End Function
+#End Region
+
+#Region "Game Input"
+    Private Sub HandleKeyboard()
+        Dim KeyState = Keyboard.GetState()
+        ' W
+        If KeyState.IsKeyDown(Input.Keys.W) And VbKeyUp = False Then VbKeyUp = True
+        If KeyState.IsKeyUp(Input.Keys.W) And VbKeyUp = True Then VbKeyUp = False
+        ' A
+        If KeyState.IsKeyDown(Input.Keys.A) And VbKeyLeft = False Then VbKeyLeft = True
+        If KeyState.IsKeyUp(Input.Keys.A) And VbKeyLeft = True Then VbKeyLeft = False
+        ' S
+        If KeyState.IsKeyDown(Input.Keys.S) And VbKeyDown = False Then VbKeyDown = True
+        If KeyState.IsKeyUp(Input.Keys.S) And VbKeyDown = True Then VbKeyDown = False
+        ' D
+        If KeyState.IsKeyDown(Input.Keys.D) And VbKeyRight = False Then VbKeyRight = True
+        If KeyState.IsKeyUp(Input.Keys.D) And VbKeyRight = True Then VbKeyRight = False
+        ' Shift
+        If KeyState.IsKeyDown(Input.Keys.LeftShift) And VbKeyShift = False Then VbKeyShift = True
+        If KeyState.IsKeyUp(Input.Keys.LeftShift) And VbKeyShift = True Then VbKeyShift = False
+        ' Control
+        If KeyState.IsKeyDown(Input.Keys.LeftControl) And VbKeyControl = False Then VbKeyControl = True
+        If KeyState.IsKeyUp(Input.Keys.LeftControl) And VbKeyControl = True Then VbKeyControl = False
+        ' Alt
+        If KeyState.IsKeyDown(Input.Keys.LeftAlt) And VbKeyAlt = False Then VbKeyAlt = True
+        If KeyState.IsKeyUp(Input.Keys.LeftAlt) And VbKeyAlt = True Then VbKeyAlt = False
+    End Sub
 #End Region
 
 End Class
