@@ -1574,11 +1574,9 @@ Module ClientGraphics
         ' Draw out the items
         If NumItems > 0 Then
             For I = 1 To MAX_MAP_ITEMS
-
                 If MapItem(I).Num > 0 Then
                     DrawItem(I)
                 End If
-
             Next
         End If
 

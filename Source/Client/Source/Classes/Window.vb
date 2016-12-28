@@ -156,6 +156,17 @@ Public Class Window : Inherits Game
                 DrawBlood(I)
             Next
 
+            ' Items
+            For I = 1 To MAX_MAP_ITEMS
+                If MapItem(I).Num > 0 Then DrawItem(I)
+            Next
+
+            For X = 1 To Map.MaxX
+                For Y = 1 To Map.MaxY
+                    If Map.Tile(X, Y).Type = TileType.Door Then DrawDoor(X, Y)
+                Next
+            Next
+
             ' Draw our animations that go below our characters.
             For I = 1 To Byte.MaxValue
                 If AnimInstance(I).Used(0) Then DrawAnimation(I, 0)
@@ -629,6 +640,73 @@ Public Class Window : Inherits Game
         End With
 
     End Sub
+    Public Sub DrawDoor(ByVal X As Integer, ByVal Y As Integer)
+        Dim rec As Rectangle
+
+        Dim x2 As Integer, y2 As Integer
+
+        ' sort out animation
+        With TempTile(X, Y)
+            If .DoorAnimate = 1 Then ' opening
+                If .DoorTimer + 100 < GetTickCount() Then
+                    If .DoorFrame < 4 Then
+                        .DoorFrame = .DoorFrame + 1
+                    Else
+                        .DoorAnimate = 2 ' set to closing
+                    End If
+                    .DoorTimer = GetTickCount()
+                End If
+            ElseIf .DoorAnimate = 2 Then ' closing
+                If .DoorTimer + 100 < GetTickCount() Then
+                    If .DoorFrame > 1 Then
+                        .DoorFrame = .DoorFrame - 1
+                    Else
+                        .DoorAnimate = 0 ' end animation
+                    End If
+                    .DoorTimer = GetTickCount()
+                End If
+            End If
+
+            If .DoorFrame = 0 Then .DoorFrame = 1
+        End With
+
+        ' Make sure our graphic loaded.
+        LoadTexture(TexMisc("Door"))
+
+        With rec
+            .Y = 0
+            .Height = TexMisc("Door").Texture.Height
+            .X = ((TempTile(X, Y).DoorFrame - 1) * TexMisc("Door").Texture.Width / 4)
+            .Width = DoorGFXInfo.Width / 4
+        End With
+
+        x2 = (X * PIC_X)
+        y2 = (Y * PIC_Y) - (TexMisc("Door").Texture.Height / 2) + 4
+
+        RenderTexture(TexMisc("Door"), New Vector2(ConvertMapX(X * PIC_X), ConvertMapY(Y * PIC_Y)), rec)
+    End Sub
+    Public Sub DrawItem(ByVal itemnum As Integer)
+        Dim srcrec As Rectangle
+        Dim PicNum As Integer
+        Dim x As Integer, y As Integer
+        PicNum = Item(MapItem(itemnum).Num).Pic
+
+        If PicNum < 1 Or PicNum > TexItems.Length Then Exit Sub
+
+        ' Make sure the texture is loaded.
+        LoadTexture(TexItems(PicNum))
+
+        If TexItems(PicNum).Texture.Width > 32 Then ' has more than 1 frame
+            srcrec = New Rectangle((MapItem(itemnum).Frame * 32), 0, 32, 32)
+        Else
+            srcrec = New Rectangle(0, 0, PIC_X, PIC_Y)
+        End If
+
+        x = ConvertMapX(MapItem(itemnum).X * PIC_X)
+        y = ConvertMapY(MapItem(itemnum).Y * PIC_Y)
+
+        RenderTexture(TexItems(PicNum), New Vector2(x, y), srcrec)
+    End Sub
     Private Sub DrawAnimation(ByVal Index As Integer, ByVal Layer As Integer)
         ' Clear our animation if we've nothing left to render.
         If AnimInstance(Index).Animation = 0 Then
@@ -988,7 +1066,6 @@ Public Class Window : Inherits Game
 #End Region
 
 #Region "Logic Updates"
-
     Private Sub UpdateCamera()
         If Device.PreferredBackBufferWidth > Map.MaxX * PIC_X Then
             RenderOffset.X = (Device.PreferredBackBufferWidth - (Map.MaxX * PIC_X)) / 2 - 16
