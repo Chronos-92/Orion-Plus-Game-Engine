@@ -61,11 +61,13 @@ Public Class Window : Inherits Game
         Device.PreferredBackBufferWidth = ResolutionX
         Device.PreferredBackBufferHeight = ResolutionY
         Device.IsFullScreen = Fullscreen
-        Device.ApplyChanges()
 
         ' Stop limiting us to 60fps!
         Device.SynchronizeWithVerticalRetrace = False
         IsFixedTimeStep = False
+
+        ' Apply our settings.
+        Device.ApplyChanges()
 
         ' Allow the mouse to be visible.
         IsMouseVisible = True
@@ -243,7 +245,9 @@ Public Class Window : Inherits Game
 
         End If
 
-        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 14, New Vector2(10, 10), Color.Yellow, Color.Black, True)
+        ' Draw debug info
+        DrawText(String.Format("Framerate: {0}", CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)), 10, New Vector2(5, 5), Color.Yellow, Color.Black, True)
+        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
