@@ -28,6 +28,7 @@ Public Class Window : Inherits Game
     Private AppLocation As String
 
     ' Textures
+    Private TexTextCache As Dictionary(Of String, TextCacheRec)
     Private TexAnimations() As TextureRec
     Private TexCharacters() As TextureRec
     Private TexTilesets() As TextureRec
@@ -130,6 +131,9 @@ Public Class Window : Inherits Game
             Device.ApplyChanges()
             HasBeenResized = False
         End If
+
+        ' Cache all the text we'll need to render soon.
+        CacheText()
 
         ' Update Framerate
         FrameRate = CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)
@@ -250,18 +254,13 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw debug info
-        DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, True)
-        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, True)
+        DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, ToScreen:=True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
 
         MyBase.Draw(Time)   ' Do not touch.
-    End Sub
-
-    Private Sub HandleClientSizeChanged(sender As Object, e As EventArgs)
-        ' Notify our Update method that the game window has changed size.
-        HasBeenResized = True
     End Sub
 
 #Region "Init Data"
@@ -282,6 +281,9 @@ Public Class Window : Inherits Game
 
         ' All miscellanious files.
         InitMiscGraphics()
+
+        ' Our text rendering cache.
+        TexTextCache = New Dictionary(Of String, TextCacheRec)()
     End Sub
 
     Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
@@ -359,6 +361,7 @@ Public Class Window : Inherits Game
 
 #Region "Unloading Data"
     Private Sub UnloadTextures()
+        ' Unload Graphics
         UnloadGraphics(TexTilesets)
         UnloadGraphics(TexCharacters)
         UnloadGraphics(TexAnimations)
@@ -371,8 +374,10 @@ Public Class Window : Inherits Game
         UnloadGraphics(TexProjectiles)
         UnloadGraphics(TexResources)
         UnloadGraphics(TexSkillicons)
-
         UnloadMiscGraphics()
+
+        ' Unload our text cache.
+        UnloadTextCache()
     End Sub
 
     Private Sub UnloadGraphics(ByRef Array() As TextureRec)
@@ -389,6 +394,19 @@ Public Class Window : Inherits Game
                 T.Value.Texture = Nothing
                 T.Value.LastAccess = DateTime.MinValue
             End If
+        Next
+    End Sub
+    Private Sub UnloadTextCache()
+        Dim OldItems = New List(Of String)
+        For Each T In TexTextCache
+            If Not T.Value Is Nothing AndAlso Not T.Value.Texture Is Nothing AndAlso T.Value.LastAccess > DateTime.MinValue AndAlso DateTime.Now.Subtract(T.Value.LastAccess).Minutes > 5 Then
+                T.Value.Texture = Nothing
+                T.Value.LastAccess = DateTime.MinValue
+                OldItems.Add(T.Key)
+            End If
+        Next
+        For Each I In OldItems
+            TexTextCache.Remove(I)
         Next
     End Sub
 #End Region
@@ -1016,7 +1034,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw name
-        Call DrawText(Name, Size, New Vector2(TextX, TextY), Color, BackColor)
+        Call DrawText(Name, Size, New Vector2(TextX, TextY), Color, BackColor, CacheText:=True)
     End Sub
     Private Sub DrawMapNpcName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
@@ -1049,7 +1067,7 @@ Public Class Window : Inherits Game
         End If
 
         ' Draw name
-        DrawText(Npc(npcNum).Name.Trim(), Size, New Vector2(TextX, TextY), color, backcolor)
+        DrawText(Npc(npcNum).Name.Trim(), Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
     End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
@@ -1064,21 +1082,75 @@ Public Class Window : Inherits Game
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
     End Sub
 
-    Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color, Optional ByVal ToScreen As Boolean = False)
+    Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color, Optional ByVal CacheText As Boolean = False, Optional ByVal ToScreen As Boolean = False)
         If ToScreen Then Location = Viewport.ScreenToWorld(Location)
 
-        ' Draw our background text.
-        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y - 1), BackColor)
-        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y + 1), BackColor)
-        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y - 1), BackColor)
-        View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y + 1), BackColor)
+        If Not CacheText Then
+            ' Draw our background text.
+            View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y - 1), BackColor)
+            View.DrawString(GameFonts(Size), Text, New Vector2(Location.X - 1, Location.Y + 1), BackColor)
+            View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y - 1), BackColor)
+            View.DrawString(GameFonts(Size), Text, New Vector2(Location.X + 1, Location.Y + 1), BackColor)
 
-        ' Draw our foreground text.
-        View.DrawString(GameFonts(Size), Text, Location, ForeColor)
+            ' Draw our foreground text.
+            View.DrawString(GameFonts(Size), Text, Location, ForeColor)
+        Else
+            Dim Key = String.Format("{0}-{1}-{2}", Text, ForeColor.ToString(), BackColor.ToString())
+            ' Check if our cache has this bit of text available, if not create it.
+            If TexTextCache.ContainsKey(Key) AndAlso Not TexTextCache(Key).Texture Is Nothing Then
+                ' Adjust for our render texture.
+                Location.X -= 1
+                Location.Y -= 1
+                View.Draw(TexTextCache(Key).Texture, Location, Color.White)
+                TexTextCache(Key).LastAccess = DateTime.Now
+            ElseIf Not TexTextCache.ContainsKey(Key) Then
+                ' Add an empty item to our cache so we can create it later.
+                ' We can't render to a new target WHILE drawing, so we do it before we start drawing next frame.
+                Dim Temp = New TextCacheRec()
+                Temp.Text = Text
+                Temp.Size = Size
+                Temp.BackColor = BackColor
+                Temp.ForeColor = ForeColor
+                Temp.LastAccess = DateTime.MinValue
+                TexTextCache.Add(Key, Temp)
+            End If
+        End If
+    End Sub
+    Private Sub CacheText()
+        ' Get all our items we need to cache and go through each of them.
+        Dim EmptyItems = TexTextCache.Where(Function(x) x.Value.Texture Is Nothing).Select(Function(x) x.Key)
+        For Each Key In EmptyItems
+            Dim Dimensions = GameFonts(TexTextCache(Key).Size).MeasureString(TexTextCache(Key).Text)
+            Dim Tex = New RenderTarget2D(GraphicsDevice, Dimensions.X + 2, Dimensions.Y + 2)
+            Dim Location = New Vector2(1, 1)
+
+            GraphicsDevice.SetRenderTarget(Tex)
+            GraphicsDevice.Clear(Color.Transparent)
+            View.Begin(SpriteSortMode.Texture, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.DepthRead, RasterizerState.CullNone)
+
+            ' Draw our background text.
+            With TexTextCache(Key)
+                View.DrawString(GameFonts(.Size), .Text, New Vector2(Location.X - 1, Location.Y - 1), .BackColor)
+                View.DrawString(GameFonts(.Size), .Text, New Vector2(Location.X - 1, Location.Y + 1), .BackColor)
+                View.DrawString(GameFonts(.Size), .Text, New Vector2(Location.X + 1, Location.Y - 1), .BackColor)
+                View.DrawString(GameFonts(.Size), .Text, New Vector2(Location.X + 1, Location.Y + 1), .BackColor)
+
+                ' Draw our foreground text.
+                View.DrawString(GameFonts(.Size), .Text, Location, .ForeColor)
+            End With
+
+            View.End()
+            TexTextCache(Key).Texture = Tex
+            GraphicsDevice.SetRenderTarget(Nothing)
+        Next
     End Sub
 #End Region
 
 #Region "Logic Updates"
+    Private Sub HandleClientSizeChanged(sender As Object, e As EventArgs)
+        ' Notify our Update method that the game window has changed size.
+        HasBeenResized = True
+    End Sub
     Private Sub UpdateCamera(ByVal Time As GameTime)
         Dim CenterX As Integer
         Dim CenterY As Integer
