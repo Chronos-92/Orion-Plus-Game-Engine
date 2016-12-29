@@ -341,7 +341,7 @@ Public Class Window : Inherits Game
         ' Draw debug info
         DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, ToScreen:=True)
         DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, ToScreen:=True)
-        DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(2, 35), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(5, 35), Color.Yellow, Color.Black, ToScreen:=True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
@@ -1451,7 +1451,7 @@ Public Class Window : Inherits Game
 
             GraphicsDevice.SetRenderTarget(Tex)
             GraphicsDevice.Clear(Color.Transparent)
-            View.Begin(SpriteSortMode.Texture, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.DepthRead, RasterizerState.CullNone)
+            View.Begin()
 
             ' Draw our background text.
             With TexTextCache(Key)
