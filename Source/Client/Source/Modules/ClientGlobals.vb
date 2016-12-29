@@ -3,6 +3,9 @@
 Module ClientGlobals
     Public SelectedChar As Byte
 
+    ' Game Window
+    Public GameScreen As Window
+
     ' for directional blocking
     Public DirArrowX(0 To 4) As Byte
     Public DirArrowY(0 To 4) As Byte

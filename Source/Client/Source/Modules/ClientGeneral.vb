@@ -238,8 +238,8 @@ Module ClientGeneral
     End Function
 
     Public Sub InitWindow()
-        Dim w As New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
-        w.Run()
+        GameScreen = New Window(Options.ResolutionX, Options.ResolutionY, Options.Fullscreen)
+        GameScreen.Run()
         DestroyGame()
     End Sub
 

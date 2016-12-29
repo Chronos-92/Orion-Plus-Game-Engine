@@ -43,6 +43,7 @@ Public Class Window : Inherits Game
     Private TexResources() As TextureRec
     Private TexSkillicons() As TextureRec
     Private TexMisc As Dictionary(Of String, TextureRec)
+    Private TexRectangle As Texture2D
 
     ' Fonts
     Private GameFonts As Dictionary(Of Integer, SpriteFont)
@@ -50,7 +51,6 @@ Public Class Window : Inherits Game
     ' Input Variables.
     Private CurX As Integer
     Private CurY As Integer
-
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
@@ -119,6 +119,8 @@ Public Class Window : Inherits Game
     End Sub
 
     Protected Overrides Sub Update(Time As GameTime)
+        ' If we have to, resize our backbuffer.
+        UpdateWindowSize()
 
         ' Update our camera position.
         UpdateCamera(Time)
@@ -129,14 +131,6 @@ Public Class Window : Inherits Game
         ' Keyboard input
         HandleKeyboard()
         HandleMouse()
-
-        ' If we have to, resize our backbuffer.
-        If HasBeenResized Then
-            Device.PreferredBackBufferWidth = Window.ClientBounds.Width
-            Device.PreferredBackBufferHeight = Window.ClientBounds.Height
-            Device.ApplyChanges()
-            HasBeenResized = False
-        End If
 
         ' Check to see if we need to stop anyone from getting stuck in their attack animation.
         UpdatePlayerAttackTimers()
@@ -215,7 +209,7 @@ Public Class Window : Inherits Game
 
                 ' Npcs
                 For i = 1 To MAX_MAP_NPCS
-                    If MapNpc(i).Num > 0 AndAlso MapNpc(i).Vital(Vitals.HP) > 0 AndAlso MapNpc(i).Y = Y Then
+                    If MapNpc(i).Num > 0 AndAlso MapNpc(i).Y = Y Then
                         DrawMapNpc(i)
                         ' TODO: Draw emotes
                     End If
@@ -286,7 +280,7 @@ Public Class Window : Inherits Game
                 End If
             Next
             For i = 1 To MAX_MAP_NPCS
-                If MapNpc(i).Num > 0 AndAlso MapNpc(i).Vital(Vitals.HP) > 0 AndAlso MapNpc(i).X = CurX AndAlso MapNpc(i).Y = CurY Then
+                If MapNpc(i).Num > 0 AndAlso MapNpc(i).X = CurX AndAlso MapNpc(i).Y = CurY Then
                     DrawHover(MapNpc(i).X * 32 - 16 + MapNpc(i).XOffset, MapNpc(i).Y * 32 + MapNpc(i).YOffset)
                 End If
             Next
@@ -314,16 +308,18 @@ Public Class Window : Inherits Game
                 End If
             Next
             For i = 1 To MAX_MAP_NPCS
-                If MapNpc(i).Num > 0 And MapNpc(i).Vital(Vitals.HP) > 0 Then
+                If MapNpc(i).Num > 0 Then
                     DrawMapNpcName(i, 10)
                 End If
             Next
-            ' TODO:
             For i = 1 To Map.CurrentEvents
                 If Map.MapEvents(i).Visible = 1 AndAlso Map.MapEvents(i).ShowName = 1 Then
                     DrawEventName(i, 10)
                 End If
             Next
+
+            ' Draw HP and Casting Bars.
+            DrawBars()
 
             ' TODO: draw chat bubbles
             'For I = 1 To Byte.MaxValue
@@ -371,6 +367,9 @@ Public Class Window : Inherits Game
 
         ' Our text rendering cache.
         TexTextCache = New Dictionary(Of String, TextCacheRec)()
+
+        ' Create our square texture.
+        InitRectangle()
     End Sub
 
     Private Sub InitGraphics(ByVal Dir As String, ByRef Array() As TextureRec)
@@ -409,6 +408,14 @@ Public Class Window : Inherits Game
         t.FileName = Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS, String.Format("{0}{1}", File, GFX_EXT))
         t.LastAccess = DateTime.MinValue
         TexMisc.Add(File, t)
+    End Sub
+    Private Sub InitRectangle()
+        TexRectangle = New Texture2D(GraphicsDevice, 1, 1)
+        Dim data(1 * 1) As Color
+        For i = 0 To data.Length - 1
+            data(i) = Color.White
+        Next
+        TexRectangle.SetData(Of Color)(data)
     End Sub
 #End Region
 
@@ -1244,6 +1251,91 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
     End Sub
+    Public Sub DrawBars()
+        Dim tmpY As Integer
+        Dim tmpX As Integer
+
+        If GettingMap Then Exit Sub
+
+        ' check for casting time bar
+        If SkillBuffer > 0 Then
+            ' lock to player
+            tmpX = GetPlayerX(MyIndex) * PIC_X + Player(MyIndex).XOffset
+            tmpY = GetPlayerY(MyIndex) * PIC_Y + Player(MyIndex).YOffset + 35
+            If Skill(PlayerSkills(SkillBuffer)).CastTime = 0 Then Skill(PlayerSkills(SkillBuffer)).CastTime = 1
+            ' calculate the width to fill
+            Dim inc = PIC_X / (GetTickCount() - SkillBufferTimer)
+            Dim maxwidth = PIC_X + 2
+            Dim barWidth = (GetTickCount() - SkillBufferTimer) * PIC_X
+            ' draw bars
+            RenderTexture(TexRectangle, New Rectangle(tmpX - 1, tmpY - 1, maxwidth, 6), New Rectangle(0, 0, 1, 1), Color.Black)
+            RenderTexture(TexRectangle, New Rectangle(tmpX, tmpY, barWidth, 4), New Rectangle(0, 0, 1, 1), Color.Cyan)
+        End If
+
+        ' check for hp bar
+        For i = 1 To MAX_MAP_NPCS
+            If Map.Npc Is Nothing Then Exit Sub
+            If Map.Npc(i) > 0 Then
+                If Npc(MapNpc(i).Num).Behaviour = NpcBehavior.AttackOnSight Or Npc(MapNpc(i).Num).Behaviour = NpcBehavior.AttackWhenAttacked Or Npc(MapNpc(i).Num).Behaviour = NpcBehavior.Guard Then
+                    ' lock to npc
+                    tmpX = MapNpc(i).X * PIC_X + MapNpc(i).XOffset
+                    tmpY = MapNpc(i).Y * PIC_Y + MapNpc(i).YOffset + 35
+                    If MapNpc(i).Vital(Vitals.HP) > 0 Then
+                        ' calculate the width to fills
+                        Dim inc = PIC_X / Npc(MapNpc(i).Num).HP
+                        Dim maxwidth = PIC_X + 2
+                        Dim barWidth = MapNpc(i).Vital(Vitals.HP) * inc
+                        ' draw bars
+                        RenderTexture(TexRectangle, New Rectangle(tmpX - 1, tmpY - 1, maxwidth, 6), New Rectangle(0, 0, 1, 1), Color.Black)
+                        RenderTexture(TexRectangle, New Rectangle(tmpX, tmpY, barWidth, 4), New Rectangle(0, 0, 1, 1), Color.Red)
+
+                        If MapNpc(i).Vital(Vitals.MP) > 0 Then
+                            ' calculate the width to fill
+                            inc = PIC_X / (Npc(MapNpc(i).Num).Stat(Stats.Intelligence) * 2)
+                            maxwidth = PIC_X + 2
+                            barWidth = MapNpc(i).Vital(Vitals.MP) * inc
+                            tmpY += 8
+                            ' draw bars
+                            RenderTexture(TexRectangle, New Rectangle(tmpX - 1, tmpY - 1, maxwidth, 6), New Rectangle(0, 0, 1, 1), Color.Black)
+                            RenderTexture(TexRectangle, New Rectangle(tmpX, tmpY, barWidth, 4), New Rectangle(0, 0, 1, 1), Color.Blue)
+                        End If
+                    End If
+                End If
+            End If
+        Next
+
+        If PetAlive(MyIndex) Then
+            ' draw own health bar
+            If Player(MyIndex).Pet.Health > 0 And Player(MyIndex).Pet.Health <= Player(MyIndex).Pet.MaxHp Then
+                ' lock to Player
+                tmpX = Player(MyIndex).Pet.X * PIC_X + Player(MyIndex).Pet.XOffset
+                tmpY = Player(MyIndex).Pet.Y * PIC_X + Player(MyIndex).Pet.YOffset + 35
+                ' calculate the width to fill
+                Dim inc = PIC_X / Player(MyIndex).Pet.MaxHp
+                Dim maxwidth = PIC_X + 2
+                Dim barWidth = Player(MyIndex).Pet.Health * inc
+                ' draw bars
+                RenderTexture(TexRectangle, New Rectangle(tmpX - 1, tmpY - 1, maxwidth, 6), New Rectangle(0, 0, 1, 1), Color.Black)
+                RenderTexture(TexRectangle, New Rectangle(tmpX, tmpY, barWidth, 4), New Rectangle(0, 0, 1, 1), Color.Red)
+            End If
+        End If
+        ' check for pet casting time bar
+        If PetSpellBuffer > 0 Then
+            If Skill(Pet(Player(MyIndex).Pet.Num).spell(PetSpellBuffer)).CastTime > 0 Then
+                ' lock to pet
+                tmpX = Player(MyIndex).Pet.X * PIC_X + Player(MyIndex).Pet.XOffset
+                tmpY = Player(MyIndex).Pet.Y * PIC_Y + Player(MyIndex).Pet.YOffset + 43
+
+                ' calculate the width to fill
+                Dim inc = PIC_X / Skill(Pet(Player(MyIndex).Pet.Num).spell(PetSpellBuffer)).CastTime
+                Dim maxwidth = PIC_X + 2
+                Dim barWidth = (GetTickCount() - PetSpellBufferTimer) * inc
+                ' draw bar background
+                RenderTexture(TexRectangle, New Rectangle(tmpX - 1, tmpY - 1, maxwidth + 2, 6), New Rectangle(0, 0, 1, 1), Color.Black)
+                RenderTexture(TexRectangle, New Rectangle(tmpX, tmpY, barWidth, 4), New Rectangle(0, 0, 1, 1), Color.Cyan)
+            End If
+        End If
+    End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
@@ -1444,6 +1536,16 @@ Public Class Window : Inherits Game
         ' Draw to screen
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
     End Sub
+    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle)
+        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
+    End Sub
+    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle, ByVal ColorMask As Color)
+        ' First make sure our texture exists.
+        If Texture Is Nothing Then Exit Sub
+
+        ' Draw to screen
+        View.Draw(Texture, Destination, Source, ColorMask)
+    End Sub
 
     Private Sub DrawText(ByVal Text As String, ByVal Size As Integer, ByVal Location As Vector2, ByVal ForeColor As Color, ByVal BackColor As Color, Optional ByVal CacheText As Boolean = False, Optional ByVal ToScreen As Boolean = False)
         If ToScreen Then Location = Viewport.ScreenToWorld(Location)
@@ -1587,6 +1689,18 @@ Public Class Window : Inherits Game
     Private Sub HandleClientSizeChanged(sender As Object, e As EventArgs)
         ' Notify our Update method that the game window has changed size.
         HasBeenResized = True
+    End Sub
+    Private Sub UpdateWindowSize()
+        If HasBeenResized Then
+            Device.PreferredBackBufferWidth = Window.ClientBounds.Width
+            Device.PreferredBackBufferHeight = Window.ClientBounds.Height
+            Device.ApplyChanges()
+            HasBeenResized = False
+
+            ' Stop the camera from moving slowly.
+            ViewPortX.Clear()
+            ViewPortY.Clear()
+        End If
     End Sub
 
     Private Sub UpdateCamera(ByVal Time As GameTime)
