@@ -490,6 +490,9 @@ Public Class Window : Inherits Game
         For Each x In TexMisc
             DestroyTexture(x.Value)
         Next
+        For Each x In TexTextCache
+            DestroyTexture(x.Value)
+        Next
     End Sub
     Private Sub DestroyTexture(ByRef Texture As TextureRec)
         If Not Texture Is Nothing AndAlso Not Texture.Texture Is Nothing Then
