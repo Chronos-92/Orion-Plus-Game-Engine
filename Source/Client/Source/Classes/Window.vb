@@ -138,6 +138,10 @@ Public Class Window : Inherits Game
             HasBeenResized = False
         End If
 
+        ' Check to see if we need to stop anyone from getting stuck in their attack animation.
+        UpdatePlayerAttackTimers()
+        UpdateNpcAttackTimers()
+
         ' Cache all the text we'll need to render soon.
         CacheText()
 
@@ -296,13 +300,12 @@ Public Class Window : Inherits Game
                 ' DrawFog()
             End If
 
-            ' Furniture placement.
-            ' TODO: 
-            If FurnitureSelected > 0 Then
-                If Player(MyIndex).InHouse = MyIndex Then
-                    DrawFurnitureOutline()
-                End If
-            End If
+            ' TODO:  Furniture placement.
+            'If FurnitureSelected > 0 Then
+            '    If Player(MyIndex).InHouse = MyIndex Then
+            '        DrawFurnitureOutline()
+            '    End If
+            'End If
 
             ' Draw names
             For i = 1 To MAX_PLAYERS
@@ -322,19 +325,17 @@ Public Class Window : Inherits Game
                 End If
             Next
 
-            ' TODO:
-            ' draw chat bubbles
+            ' TODO: draw chat bubbles
             'For I = 1 To Byte.MaxValue
             '    If chatBubble(I).active Then
             '        DrawChatBubble(I)
             '    End If
             'Next
 
-            ' TODO: 
-            ' Draw action messages.
-            'For I = 1 To Byte.MaxValue
-            '    DrawActionMsg(I)
-            'Next I
+            ' Draw Action messages.
+            For I = 1 To Byte.MaxValue
+                DrawActionMsg(I, 8)
+            Next I
 
         End If
 
@@ -896,7 +897,7 @@ Public Class Window : Inherits Game
         Dim FrameRow As Integer
         Dim AttackSpeed = 1000
         If GetPlayerEquipment(Index, EquipmentType.Weapon) > 0 Then AttackSpeed = Item(GetPlayerEquipment(Index, EquipmentType.Weapon)).Speed
-        If Player(Index).AttackTimer + (AttackSpeed / 2) > GetTickCount() Then If Player(Index).Attacking = 1 Then Frame = 3
+        If Player(Index).AttackTimer + (AttackSpeed / 2) > GetTickCount() AndAlso Player(Index).Attacking = 1 Then Frame = 3
         Select Case GetPlayerDir(Index)
             Case Direction.Up
                 If Frame = 0 AndAlso Player(Index).YOffset > 8 Then Frame = Player(Index).Steps
@@ -963,14 +964,6 @@ Public Class Window : Inherits Game
                     If (Player(Index).Pet.XOffset < -8) Then Anim = Player(Index).Pet.Steps
             End Select
         End If
-
-        ' Check to see if we want to stop making him attack
-        With Player(Index).Pet
-            If .AttackTimer + attackspeed < GetTickCount() Then
-                .Attacking = 0
-                .AttackTimer = 0
-            End If
-        End With
 
         ' Set the left
         Select Case Player(Index).Pet.dir
@@ -1043,14 +1036,6 @@ Public Class Window : Inherits Game
                     If (MapNpc(MapNpcNum).XOffset < -8) Then anim = MapNpc(MapNpcNum).Steps
             End Select
         End If
-
-        ' Check to see if we want to stop making him attack
-        With MapNpc(MapNpcNum)
-            If .AttackTimer + attackspeed < GetTickCount() Then
-                .Attacking = 0
-                .AttackTimer = 0
-            End If
-        End With
 
         ' Set the left
         Select Case MapNpc(MapNpcNum).Dir
@@ -1394,6 +1379,59 @@ Public Class Window : Inherits Game
         Next
 
     End Sub
+    Sub DrawActionMsg(ByVal Index As Integer, ByVal Size As Integer)
+        Dim X As Integer, Y As Integer, i As Integer, Time As Integer
+
+        ' how long we want each message to appear
+        Select Case ActionMsg(Index).Type
+            Case ActionMsgType.Static
+                Time = 1500
+
+                If ActionMsg(Index).Y > 0 Then
+                    X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
+                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2
+                Else
+                    X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
+                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18
+                End If
+
+            Case ActionMsgType.Scroll
+                Time = 1500
+
+                If ActionMsg(Index).Y > 0 Then
+                    X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
+                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2 - (ActionMsg(Index).Scroll * 0.6)
+                    ActionMsg(Index).Scroll = ActionMsg(Index).Scroll + 1
+                Else
+                    X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
+                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18 + (ActionMsg(Index).Scroll * 0.6)
+                    ActionMsg(Index).Scroll = ActionMsg(Index).Scroll + 1
+                End If
+
+            Case ActionMsgType.Screen
+                Time = 3000
+
+                ' This will kill any action screen messages that there in the system
+                For i = Byte.MaxValue To 1 Step -1
+                    If ActionMsg(i).Type = ActionMsgType.Screen Then
+                        If i <> Index Then
+                            ClearActionMsg(Index)
+                            Index = i
+                        End If
+                    End If
+                Next
+                X = Device.PreferredBackBufferWidth / 2 - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X / 2
+                y = Device.PreferredBackBufferHeight / 2
+
+        End Select
+
+        If GetTickCount() < ActionMsg(Index).Created + Time Then
+            DrawText(ActionMsg(Index).message, Size, New Vector2(X, y), GetColorFromType(ActionMsg(Index).color), Color.Black, CacheText:=True)
+        Else
+            ClearActionMsg(Index)
+        End If
+
+    End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
         RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
@@ -1469,13 +1507,88 @@ Public Class Window : Inherits Game
             GraphicsDevice.SetRenderTarget(Nothing)
         Next
     End Sub
+
+    Private Function GetColorFromType(ByVal Input As ColorType) As Color
+        Select Case Input
+            Case ColorType.Black
+                GetColorFromType = Color.Black
+            Case ColorType.Blue
+                GetColorFromType = Color.Blue
+            Case ColorType.BrightBlue
+                GetColorFromType = Color.CadetBlue
+            Case ColorType.BrightCyan
+                GetColorFromType = Color.LightCyan
+            Case ColorType.BrightGreen
+                GetColorFromType = Color.LightGreen
+            Case ColorType.BrightRed, ColorType.Red
+                GetColorFromType = Color.Red
+            Case ColorType.Brown
+                GetColorFromType = Color.Brown
+            Case ColorType.Cyan
+                GetColorFromType = Color.Cyan
+            Case ColorType.DarkGray
+                GetColorFromType = Color.DarkGray
+            Case ColorType.Gray
+                GetColorFromType = Color.Gray
+            Case ColorType.Green
+                GetColorFromType = Color.Green
+            Case ColorType.Magenta
+                GetColorFromType = Color.Magenta
+            Case ColorType.Pink
+                GetColorFromType = Color.Pink
+            Case ColorType.White
+                GetColorFromType = Color.White
+            Case ColorType.Yellow
+                GetColorFromType = Color.Yellow
+            Case Else
+                GetColorFromType = Color.White
+        End Select
+    End Function
 #End Region
 
 #Region "Logic Updates"
+    Private Sub UpdateNpcAttackTimers()
+        For i = 1 To MAX_MAP_NPCS
+            If MapNpc(i).Num > 0 AndAlso MapNpc(i).Vital(Vitals.HP) > 0 Then
+                With MapNpc(i)
+                    Dim attackspeed = 1000
+                    If .AttackTimer + attackspeed < GetTickCount() Then
+                        .Attacking = 0
+                        .AttackTimer = 0
+                    End If
+                End With
+            End If
+        Next
+    End Sub
+    Private Sub UpdatePlayerAttackTimers()
+        For i = 1 To MAX_PLAYERS
+            If IsPlaying(i) Then
+                With Player(i)
+                    Dim attackspeed = 1000
+                    If GetPlayerEquipment(i, EquipmentType.Weapon) > 0 Then attackspeed = Item(GetPlayerEquipment(i, EquipmentType.Weapon)).Speed
+                    If .AttackTimer + attackspeed < GetTickCount() Then
+                        .Attacking = 0
+                        .AttackTimer = 0
+                    End If
+                End With
+                If PetAlive(i) Then
+                    With Player(i).Pet
+                        Dim attackspeed = 1000
+                        If .AttackTimer + attackspeed < GetTickCount() Then
+                            .Attacking = 0
+                            .AttackTimer = 0
+                        End If
+                    End With
+                End If
+            End If
+        Next
+    End Sub
+
     Private Sub HandleClientSizeChanged(sender As Object, e As EventArgs)
         ' Notify our Update method that the game window has changed size.
         HasBeenResized = True
     End Sub
+
     Private Sub UpdateCamera(ByVal Time As GameTime)
         Dim CenterX As Integer
         Dim CenterY As Integer
@@ -1523,7 +1636,7 @@ Public Class Window : Inherits Game
     End Sub
     Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer, ByVal Time As GameTime)
         If Time.ElapsedGameTime.TotalSeconds = 0 Then Exit Sub
-        Dim MaxEntries = FrameRate / 5
+        Dim MaxEntries = FrameRate / 3
         ViewPortX.Add(X)
         If ViewPortX.Count() > MaxEntries Then ViewPortX.Remove(ViewPortX.First())
         ViewPortY.Add(Y)
