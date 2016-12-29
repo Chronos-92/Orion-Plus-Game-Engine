@@ -223,6 +223,15 @@ Public Class Window : Inherits Game
                     Next
                 End If
 
+                ' Resources
+                If Resources_Init AndAlso Resource_Index > 0 Then
+                    For I = 1 To Resource_Index
+                        If MapResource(I).Y = Y Then
+                            DrawMapResource(I)
+                        End If
+                    Next
+                End If
+
             Next
 
             ' events
@@ -1023,6 +1032,51 @@ Public Class Window : Inherits Game
         destrec = New Rectangle(X, Y, TexCharacters(Sprite).Texture.Width / 4, TexCharacters(Sprite).Texture.Height / 4)
 
         RenderTexture(TexCharacters(Sprite), New Vector2(X, Y), srcrec)
+    End Sub
+    Public Sub DrawMapResource(ByVal Resource_num As Integer)
+        Dim Resource_master As Integer
+
+        Dim Resource_state As Integer
+        Dim Resource_sprite As Integer
+        Dim rec As Rectangle
+        Dim X As Integer, Y As Integer
+
+        If GettingMap Then Exit Sub
+        If MapData = False Then Exit Sub
+
+        If MapResource(Resource_num).X > Map.MaxX Or MapResource(Resource_num).Y > Map.MaxY Then Exit Sub
+        ' Get the Resource type
+        Resource_master = Map.Tile(MapResource(Resource_num).X, MapResource(Resource_num).Y).Data1
+
+        If Resource_master = 0 Then Exit Sub
+
+        If Resource(Resource_master).ResourceImage = 0 Then Exit Sub
+
+        ' Get the Resource state
+        Resource_state = MapResource(Resource_num).ResourceState
+
+        If Resource_state = 0 Then ' normal
+            Resource_sprite = Resource(Resource_master).ResourceImage
+        ElseIf Resource_state = 1 Then ' used
+            Resource_sprite = Resource(Resource_master).ExhaustedImage
+        End If
+
+        ' Make sure our texture is loaded.
+        LoadTexture(TexResources(Resource_sprite))
+
+        ' src rect
+        With rec
+            .Y = 0
+            .Height = TexResources(Resource_sprite).Texture.Height
+            .X = 0
+            .Width = TexResources(Resource_sprite).Texture.Width
+        End With
+
+        ' Set base x + y, then the offset due to size
+        X = (MapResource(Resource_num).X * PIC_X) - (TexResources(Resource_sprite).Texture.Width / 2) + 16
+        Y = (MapResource(Resource_num).Y * PIC_Y) - TexResources(Resource_sprite).Texture.Height + 32
+
+        RenderTexture(TexResources(Resource_sprite), New Vector2(X, Y), rec)
     End Sub
     Public Sub DrawTarget(ByVal X As Integer, ByVal Y As Integer)
         Dim rec As Rectangle
