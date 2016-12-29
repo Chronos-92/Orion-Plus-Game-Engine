@@ -46,6 +46,10 @@ Public Class Window : Inherits Game
     ' Fonts
     Private GameFonts As Dictionary(Of Integer, SpriteFont)
 
+    ' Input Variables.
+    Private CurX As Integer
+    Private CurY As Integer
+
 
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
@@ -123,6 +127,7 @@ Public Class Window : Inherits Game
 
         ' Keyboard input
         HandleKeyboard()
+        HandleMouse()
 
         ' If we have to, resize our backbuffer.
         If HasBeenResized Then
@@ -227,6 +232,29 @@ Public Class Window : Inherits Game
                 Next
             End If
 
+            ' Draw the target icon
+            If myTarget > 0 Then
+                If myTargetType = TargetType.Player Then
+                    DrawTarget(Player(myTarget).X * 32 - 16 + Player(myTarget).XOffset, Player(myTarget).Y * 32 + Player(myTarget).YOffset)
+                ElseIf myTargetType = TargetType.Npc Then
+                    DrawTarget(MapNpc(myTarget).X * 32 - 16 + MapNpc(myTarget).XOffset, MapNpc(myTarget).Y * 32 + MapNpc(myTarget).YOffset)
+                ElseIf myTargetType = TargetType.Pet Then
+                    DrawTarget(Player(myTarget).Pet.X * 32 - 16 + Player(myTarget).Pet.XOffset, (Player(myTarget).Pet.Y * 32) + Player(myTarget).Pet.YOffset)
+                End If
+            End If
+
+            ' Draw hover icon.
+            For I = 1 To MAX_PLAYERS
+                If IsPlaying(I) AndAlso Player(I).Map = Player(MyIndex).Map AndAlso CurX = Player(I).X And CurY = Player(I).Y Then
+                    DrawHover(Player(I).X * 32 - 16 + Player(I).XOffset, Player(I).Y * 32 + Player(I).YOffset)
+                End If
+            Next
+            For i = 1 To MAX_MAP_NPCS
+                If MapNpc(i).Num > 0 AndAlso MapNpc(i).Vital(Vitals.HP) > 0 AndAlso MapNpc(i).X = CurX AndAlso MapNpc(i).Y = CurY Then
+                    DrawHover(MapNpc(i).X * 32 - 16 + MapNpc(i).XOffset, MapNpc(i).Y * 32 + MapNpc(i).YOffset)
+                End If
+            Next
+
             ' Draw our top layers.
             For Layer = MapLayer.Fringe To MapLayer.Fringe2
                 DrawMapLayer(Layer)
@@ -256,6 +284,7 @@ Public Class Window : Inherits Game
         ' Draw debug info
         DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, ToScreen:=True)
         DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(2, 35), Color.Yellow, Color.Black, ToScreen:=True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
@@ -995,6 +1024,36 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexCharacters(Sprite), New Vector2(X, Y), srcrec)
     End Sub
+    Public Sub DrawTarget(ByVal X As Integer, ByVal Y As Integer)
+        Dim rec As Rectangle
+
+        ' Make sure our texture is loaded.
+        LoadTexture(TexMisc("Target"))
+
+        With rec
+            .Y = 0
+            .Height = TexMisc("Target").Texture.Height
+            .X = 0
+            .Width = TexMisc("Target").Texture.Width / 2
+        End With
+
+        RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
+    End Sub
+    Public Sub DrawHover(ByVal X As Integer, ByVal Y As Integer)
+        Dim rec As Rectangle
+
+        ' Make sure it's loaded.
+        LoadTexture(TexMisc("Target"))
+
+        With rec
+            .Y = 0
+            .Height = TexMisc("Target").Texture.Height
+            .X = TexMisc("Target").Texture.Width / 2
+            .Width = TexMisc("Target").Texture.Width / 2 + TexMisc("Target").Texture.Width / 2
+        End With
+
+        RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
+    End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
@@ -1207,6 +1266,12 @@ Public Class Window : Inherits Game
         ' Alt
         If KeyState.IsKeyDown(Input.Keys.LeftAlt) And VbKeyAlt = False Then VbKeyAlt = True
         If KeyState.IsKeyUp(Input.Keys.LeftAlt) And VbKeyAlt = True Then VbKeyAlt = False
+    End Sub
+    Private Sub HandleMouse()
+        Dim MouseState = Mouse.GetState()
+        Dim WorldLocation = Viewport.ScreenToWorld(New Vector2(MouseState.X, MouseState.Y))
+        CurX = WorldLocation.X / PIC_X
+        CurY = WorldLocation.Y / PIC_Y
     End Sub
 #End Region
 
