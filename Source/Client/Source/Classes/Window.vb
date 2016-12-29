@@ -20,6 +20,7 @@ Public Class Window : Inherits Game
     ' Logic Variables.
     Private HasBeenResized As Boolean
     Private Viewport As Camera2D
+    Private ViewPortMap As Integer
     Private ViewPortX As List(Of Integer)
     Private ViewPortY As List(Of Integer)
     Private FrameRate As Integer
@@ -241,6 +242,28 @@ Public Class Window : Inherits Game
                 Next
             End If
 
+            ' Animations above everything
+            For I = 1 To Byte.MaxValue
+                If AnimInstance(I).Used(0) Then DrawAnimation(I, 1)
+            Next
+
+            ' Projectiles.
+            For I = 1 To MAX_PROJECTILES
+                If MapProjectiles(I).ProjectileNum > 0 Then DrawProjectile(I)
+            Next
+
+            ' Draw our top layers.
+            For Layer = MapLayer.Fringe To MapLayer.Fringe2
+                DrawMapLayer(Layer)
+            Next
+
+            ' Furniture
+            If FurnitureHouse > 0 AndAlso FurnitureHouse = Player(MyIndex).InHouse AndAlso FurnitureCount > 0 Then
+                For I = 1 To FurnitureCount
+                    If Furniture(I).ItemNum > 0 Then DrawFurniture(I, 1)
+                Next
+            End If
+
             ' Draw the target icon
             If myTarget > 0 Then
                 If myTargetType = TargetType.Player Then
@@ -264,16 +287,21 @@ Public Class Window : Inherits Game
                 End If
             Next
 
-            ' Draw our top layers.
-            For Layer = MapLayer.Fringe To MapLayer.Fringe2
-                DrawMapLayer(Layer)
-            Next
+            ' Draw weather effects
+            ' TODO:
+            ' DrawWeather()
+            ' DrawThunderEffect()
+            ' DrawMapTint()
+            If CurrentFog > 0 Then
+                ' DrawFog()
+            End If
 
-            ' Furniture
-            If FurnitureHouse > 0 AndAlso FurnitureHouse = Player(MyIndex).InHouse AndAlso FurnitureCount > 0 Then
-                For I = 1 To FurnitureCount
-                    If Furniture(I).ItemNum > 0 Then DrawFurniture(I, 1)
-                Next
+            ' Furniture placement.
+            ' TODO: 
+            If FurnitureSelected > 0 Then
+                If Player(MyIndex).InHouse = MyIndex Then
+                    DrawFurnitureOutline()
+                End If
             End If
 
             ' Draw names
@@ -287,6 +315,26 @@ Public Class Window : Inherits Game
                     DrawMapNpcName(i, 10)
                 End If
             Next
+            ' TODO:
+            For i = 1 To Map.CurrentEvents
+                If Map.MapEvents(i).Visible = 1 AndAlso Map.MapEvents(i).ShowName = 1 Then
+                    DrawEventName(i, 10)
+                End If
+            Next
+
+            ' TODO:
+            ' draw chat bubbles
+            'For I = 1 To Byte.MaxValue
+            '    If chatBubble(I).active Then
+            '        DrawChatBubble(I)
+            '    End If
+            'Next
+
+            ' TODO: 
+            ' Draw action messages.
+            'For I = 1 To Byte.MaxValue
+            '    DrawActionMsg(I)
+            'Next I
 
         End If
 
@@ -514,6 +562,7 @@ Public Class Window : Inherits Game
         Next
     End Sub
     Private Sub DrawMapTile(ByVal Layer As Integer, ByVal X As Integer, ByVal Y As Integer)
+        If GettingMap Then Exit Sub
         With Map.Tile(X, Y).Layer(Layer)
             Select Case Autotile(X, Y).Layer(Layer).renderState
                 Case RENDER_STATE_NORMAL
@@ -1081,6 +1130,105 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexResources(Resource_sprite), New Vector2(X, Y), rec)
     End Sub
+    Public Sub DrawProjectile(ByVal ProjectileNum As Integer)
+        Dim rec As Rectangle
+        Dim CanClearProjectile As Boolean
+        Dim CollisionIndex As Integer
+        Dim CollisionType As Byte
+        Dim CollisionZone As Integer
+        Dim X As Integer, Y As Integer
+        Dim i As Integer
+        Dim Sprite As Integer
+
+        ' check to see if it's time to move the Projectile
+        If GetTickCount() > MapProjectiles(ProjectileNum).TravelTime Then
+            Select Case MapProjectiles(ProjectileNum).dir
+                Case Direction.Up
+                    MapProjectiles(ProjectileNum).Y = MapProjectiles(ProjectileNum).Y - 1
+                Case Direction.Down
+                    MapProjectiles(ProjectileNum).Y = MapProjectiles(ProjectileNum).Y + 1
+                Case Direction.Left
+                    MapProjectiles(ProjectileNum).X = MapProjectiles(ProjectileNum).X - 1
+                Case Direction.Right
+                    MapProjectiles(ProjectileNum).X = MapProjectiles(ProjectileNum).X + 1
+            End Select
+            MapProjectiles(ProjectileNum).TravelTime = GetTickCount() + Projectiles(MapProjectiles(ProjectileNum).ProjectileNum).Speed
+            MapProjectiles(ProjectileNum).Range = MapProjectiles(ProjectileNum).Range + 1
+        End If
+
+        X = MapProjectiles(ProjectileNum).X
+        Y = MapProjectiles(ProjectileNum).Y
+
+        'Check if its been going for over 1 minute, if so clear.
+        If MapProjectiles(ProjectileNum).Timer < GetTickCount() Then CanClearProjectile = True
+
+        If X > Map.MaxX Or X < 0 Then CanClearProjectile = True
+        If Y > Map.MaxY Or Y < 0 Then CanClearProjectile = True
+
+        'Check for blocked wall collision
+        If CanClearProjectile = False Then 'Add a check to prevent crashing
+            If Map.Tile(X, Y).Type = TileType.Blocked Then CanClearProjectile = True
+        End If
+
+        'Check for npc collision
+        For i = 1 To MAX_MAP_NPCS
+            If MapNpc(i).X = X And MapNpc(i).Y = Y Then
+                CanClearProjectile = True
+                CollisionIndex = i
+                CollisionType = TargetType.Npc
+                CollisionZone = -1
+                Exit For
+            End If
+        Next
+
+        'Check for player collision
+        For i = 1 To MAX_PLAYERS
+            If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) Then
+                If GetPlayerX(i) = X And GetPlayerY(i) = Y Then
+                    CanClearProjectile = True
+                    CollisionIndex = i
+                    CollisionType = TargetType.Player
+                    CollisionZone = -1
+                    If MapProjectiles(ProjectileNum).OwnerType = TargetType.Player Then
+                        If MapProjectiles(ProjectileNum).Owner = i Then CanClearProjectile = False ' Reset if its the owner of projectile
+                    End If
+                    Exit For
+                End If
+
+            End If
+        Next
+
+        'Check if it has hit its maximum range
+        If MapProjectiles(ProjectileNum).Range >= Projectiles(MapProjectiles(ProjectileNum).ProjectileNum).Range + 1 Then CanClearProjectile = True
+
+        'Clear the projectile if possible
+        If CanClearProjectile = True Then
+            'Only send the clear to the server if you're the projectile caster or the one hit (only if owner is not a player)
+            If (MapProjectiles(ProjectileNum).OwnerType = TargetType.Player And MapProjectiles(ProjectileNum).Owner = MyIndex) Then
+                SendClearProjectile(ProjectileNum, CollisionIndex, CollisionType, CollisionZone)
+            End If
+
+            ClearMapProjectile(ProjectileNum)
+            Exit Sub
+        End If
+
+        Sprite = Projectiles(MapProjectiles(ProjectileNum).ProjectileNum).Sprite
+        If Sprite < 1 Or Sprite > TexProjectiles.Length Then Exit Sub
+
+        ' Make sure our texture is loaded.
+        LoadTexture(TexProjectiles(Sprite))
+
+        ' src rect
+        With rec
+            .Y = 0
+            .Height = ProjectileGFXInfo(Sprite).Height
+            .X = MapProjectiles(ProjectileNum).dir * PIC_X
+            .Width = .Left + PIC_X
+        End With
+
+        RenderTexture(TexProjectiles(Sprite), New Vector2(X * PIC_X, Y * PIC_Y), rec)
+
+    End Sub
     Public Sub DrawTarget(ByVal X As Integer, ByVal Y As Integer)
         Dim rec As Rectangle
 
@@ -1185,6 +1333,67 @@ Public Class Window : Inherits Game
         ' Draw name
         DrawText(Npc(npcNum).Name.Trim(), Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
     End Sub
+    Public Sub DrawEventName(ByVal Index As Integer, ByVal Size As Integer)
+        Dim TextX As Integer
+        Dim TextY As Integer
+        Dim color As Color, backcolor As Color
+        Dim Name As String, i As Integer
+
+        color = Color.Yellow
+        backcolor = Color.Black
+
+        Name = Trim$(Map.MapEvents(Index).Name)
+
+        ' calc pos
+        TextX = Map.MapEvents(Index).X * PIC_X + Map.MapEvents(Index).XOffset + (PIC_X \ 2) - GameFonts(Size).MeasureString(Name).X / 2
+        If Map.MapEvents(Index).GraphicType = 0 Then
+            TextY = ConvertMapY(Map.MapEvents(Index).Y * PIC_Y) + Map.MapEvents(Index).YOffset - 16
+        ElseIf Map.MapEvents(Index).GraphicType = 1 Then
+            If Map.MapEvents(Index).GraphicNum < 1 Or Map.MapEvents(Index).GraphicNum > TexCharacters.Length Then
+                TextY = Map.MapEvents(Index).Y * PIC_Y + Map.MapEvents(Index).YOffset - 16
+            Else
+                ' Determine location for text
+                TextY = Map.MapEvents(Index).Y * PIC_Y + Map.MapEvents(Index).YOffset - (TexCharacters(Map.MapEvents(Index).GraphicNum).Texture.Height / 4) + 16
+            End If
+        ElseIf Map.MapEvents(Index).GraphicType = 2 Then
+            If Map.MapEvents(Index).GraphicY2 > 0 Then
+                TextY = Map.MapEvents(Index).Y * PIC_Y + Map.MapEvents(Index).YOffset - (Map.MapEvents(Index).GraphicY2 * PIC_Y) + 16
+            Else
+                TextY = Map.MapEvents(Index).Y * PIC_Y + Map.MapEvents(Index).YOffset - 32 + 16
+            End If
+        End If
+
+        ' Draw name
+        DrawText(Name, Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
+
+        For i = 1 To MAX_QUESTS
+            'check if the npc is the starter to any quest: [!] symbol
+            'can accept the quest as a new one?
+            If Player(MyIndex).PlayerQuest(i).Status = QUEST_NOT_STARTED Or Player(MyIndex).PlayerQuest(i).Status = QUEST_COMPLETED_BUT Or (Player(MyIndex).PlayerQuest(i).Status = QUEST_COMPLETED And Quest(i).Repeat = 1) Then
+                'the npc gives this quest?
+                If Map.MapEvents(Index).questnum = i Then
+                    Name = "[!]"
+                    TextX = Map.MapEvents(Index).X * PIC_X + Map.MapEvents(Index).XOffset + (PIC_X \ 2) - GameFonts(Size).MeasureString((Trim$("[!]"))).X + 8
+                    TextY = TextY - 16
+                    If Quest(i).Repeat = 1 Then
+                        DrawText(Name, Size, New Vector2(TextX, TextY), Color.White, backcolor, CacheText:=True)
+                    Else
+                        DrawText(Name, Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
+                    End If
+                    Exit For
+                End If
+            ElseIf Player(MyIndex).PlayerQuest(i).Status = QUEST_STARTED Then
+                If Map.MapEvents(Index).questnum = i Then
+                    Name = "[*]"
+                    TextX = Map.MapEvents(Index).X * PIC_X + Map.MapEvents(Index).XOffset + (PIC_X \ 2) - GameFonts(Size).MeasureString((Trim$("[*]"))).X + 8
+                    TextY = TextY - 16
+                    DrawText(Name, Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
+                    Exit For
+                End If
+            End If
+        Next
+
+    End Sub
 
     Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
         RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
@@ -1271,6 +1480,13 @@ Public Class Window : Inherits Game
         Dim CenterX As Integer
         Dim CenterY As Integer
 
+        ' If we've changed maps, clear out the lists to stop smoothing things.
+        If GetPlayerMap(MyIndex) <> ViewPortMap Then
+            ViewPortX.Clear()
+            ViewPortY.Clear()
+        End If
+
+        ' Calculate the camera center if we've got a smaller viewport than the map, else center the map.
         If Device.PreferredBackBufferWidth > Map.MaxX * PIC_X Then
             CenterX = (Map.MaxX * PIC_X) / 2 + 16
         Else
@@ -1283,11 +1499,27 @@ Public Class Window : Inherits Game
             CenterY = Player(MyIndex).Y * PIC_Y + Player(MyIndex).YOffset
         End If
 
-        ' Smooth Camera 
+        ' Add our new values.
         CameraAddValues(CenterX, CenterY, Time)
-        If ViewPortX.Count() > 1 AndAlso ViewPortY.Count() > 1 Then Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
+
+        ' If we've got enough values average them out so we can put the screen at the right place.
+        If ViewPortX.Count() > 0 AndAlso ViewPortY.Count() > 0 Then Viewport.LookAt(New Vector2(ViewPortX.Average(), ViewPortY.Average()))
+
+        ' Keep the map in our bounding box.
+        If Device.PreferredBackBufferWidth < (Map.MaxX + 1) * PIC_X Then
+            If Viewport.Position.X < 0 Then Viewport.Position = New Vector2(0, Viewport.Position.Y)
+            If Viewport.Position.X > (Map.MaxX + 1) * PIC_X - Device.PreferredBackBufferWidth Then Viewport.Position = New Vector2((Map.MaxX + 1) * PIC_X - Device.PreferredBackBufferWidth, Viewport.Position.Y)
+        End If
+        If Device.PreferredBackBufferHeight < (Map.MaxY + 1) * PIC_Y Then
+            If Viewport.Position.Y < 0 Then Viewport.Position = New Vector2(Viewport.Position.X, 0)
+            If Viewport.Position.Y > (Map.MaxY + 1) * PIC_Y - Device.PreferredBackBufferHeight Then Viewport.Position = New Vector2(Viewport.Position.X, (Map.MaxY + 1) * PIC_Y - Device.PreferredBackBufferHeight)
+        End If
+
         ' Do not ever allow the camera to sit on float values, it will go funky real quick!
         Viewport.Position = New Vector2(CType(Viewport.Position.X, Integer), CType(Viewport.Position.Y, Integer))
+
+        ' Set the viewport map to the current.
+        ViewPortMap = GetPlayerMap(MyIndex)
     End Sub
     Private Sub CameraAddValues(ByVal X As Integer, ByVal Y As Integer, ByVal Time As GameTime)
         If Time.ElapsedGameTime.TotalSeconds = 0 Then Exit Sub

@@ -797,7 +797,7 @@ Module ClientGraphics
         Dim TmpImage As Sprite = New Sprite(Txture)
         TmpImage.TextureRect = New IntRect(SourceX, SourceY, SourceWidth, SourceHeight)
         TmpImage.Position = New Vector2f(DestX, DestY)
-        Target.Draw(TmpImage)
+        'Target.Draw(TmpImage)
         'TmpImage.Dispose()
     End Sub
 
@@ -806,7 +806,7 @@ Module ClientGraphics
         TmpImage.TextureRect = New IntRect(sx, sy, sWidth, sHeight)
         TmpImage.Scale = New Vector2f(dWidth / sWidth, dHeight / sHeight)
         TmpImage.Position = New Vector2f(dX, dY)
-        Target.Draw(TmpImage)
+        'Target.Draw(TmpImage)
 
     End Sub
 
