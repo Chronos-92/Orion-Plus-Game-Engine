@@ -186,7 +186,6 @@ Public Class Window : Inherits Game
         GraphicsDevice.Clear(Color.Black)
         View.Begin(transformMatrix:=Viewport.GetViewMatrix(), blendState:=BlendState.NonPremultiplied, samplerState:=SamplerState.PointClamp)
 
-        ' TODO: Render Graphics
         If Not GettingMap Then
 
             ' Draw our bottom layers.
@@ -319,16 +318,13 @@ Public Class Window : Inherits Game
                 End If
             Next
 
-            ' Draw weather effects
-            ' TODO:
-            ' DrawWeather()
-            ' DrawThunderEffect()
-            ' DrawMapTint()
-            If CurrentFog > 0 Then
-                ' DrawFog()
-            End If
+            ' Draw weather
+            DrawWeather()
+            DrawThunderEffect()
+            If Map.HasMapTint = 1 Then DrawMapTint()
+            If CurrentFog > 0 Then DrawFog()
 
-            ' TODO:  Furniture placement.
+            ' TODO: Furniture
             'If FurnitureSelected > 0 Then
             '    If Player(MyIndex).InHouse = MyIndex Then
             '        DrawFurnitureOutline()
@@ -1443,6 +1439,44 @@ Public Class Window : Inherits Game
             End If
         End If
     End Sub
+    Public Sub DrawWeather()
+        Dim i As Integer, SpriteLeft As Integer
+
+        For i = 1 To MAX_WEATHER_PARTICLES
+            If WeatherParticle(i).InUse Then
+                If WeatherParticle(i).type = MAP_WEATHER_STORM Then
+                    SpriteLeft = 0
+                Else
+                    SpriteLeft = WeatherParticle(i).type - 1
+                End If
+                RenderTexture(TexMisc("Weather"), New Vector2(WeatherParticle(i).X, WeatherParticle(i).Y), New Rectangle(SpriteLeft * PIC_X, 0, PIC_X, PIC_Y))
+            End If
+        Next
+
+    End Sub
+    Public Sub DrawThunderEffect()
+        If DrawThunder > 0 Then
+            RenderTexture(TexRectangle, New Rectangle(0, 0, Device.PreferredBackBufferWidth, Device.PreferredBackBufferHeight), New Rectangle(0, 0, 1, 1), Color.LightYellow)
+            DrawThunder -= 1
+        End If
+    End Sub
+    Public Sub DrawMapTint()
+        RenderTexture(TexRectangle, New Rectangle(0, 0, Device.PreferredBackBufferWidth, Device.PreferredBackBufferHeight), New Rectangle(0, 0, 1, 1), New Color(CurrentTintR, CurrentTintG, CurrentTintB, CurrentTintA), True)
+    End Sub
+    Public Sub DrawFog()
+        Dim fogNum = CurrentFog
+        If fogNum <= 0 Or fogNum > TexFog.Length Then Exit Sub
+        LoadTexture(TexFog(fogNum))
+
+        Dim RepeatX = (Device.PreferredBackBufferWidth / TexFog(fogNum).Texture.Width) + 1
+        Dim RepeatY = (Device.PreferredBackBufferHeight / TexFog(fogNum).Texture.Height) + 1
+
+        For X = 0 To RepeatX
+            For Y = 0 To RepeatY
+                RenderTexture(TexFog(fogNum), New Vector2(X * TexFog(fogNum).Texture.Width, Y * TexFog(fogNum).Texture.Height), New Rectangle(0, 0, TexFog(fogNum).Texture.Width, TexFog(fogNum).Texture.Height), New Color(255, 255, 255, CurrentFogOpacity), True)
+            Next
+        Next
+    End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
@@ -1632,23 +1666,33 @@ Public Class Window : Inherits Game
 
     End Sub
 
-    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle)
-        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
+    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle, Optional ByVal ToScreen As Boolean = False)
+        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255), ToScreen)
     End Sub
-    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle, ByVal ColorMask As Color)
+    Private Sub RenderTexture(ByVal Texture As TextureRec, ByVal Destination As Vector2, Source As Rectangle, ByVal ColorMask As Color, Optional ByVal ToScreen As Boolean = False)
         ' First make sure our texture exists.
         If Texture Is Nothing Then Exit Sub
         LoadTexture(Texture)
 
+        ' If stuck to screen, change our location.
+        If ToScreen Then Destination = Viewport.ScreenToWorld(Destination)
+
         ' Draw to screen
         View.Draw(Texture.Texture, Destination, Source, ColorMask)
     End Sub
-    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle)
-        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255))
+    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle, Optional ByVal ToScreen As Boolean = False)
+        RenderTexture(Texture, Destination, Source, New Color(255, 255, 255, 255), ToScreen)
     End Sub
-    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle, ByVal ColorMask As Color)
+    Private Sub RenderTexture(ByVal Texture As Texture2D, ByVal Destination As Rectangle, Source As Rectangle, ByVal ColorMask As Color, Optional ByVal ToScreen As Boolean = False)
         ' First make sure our texture exists.
         If Texture Is Nothing Then Exit Sub
+
+        ' If stuck to screen, change our location.
+
+        If ToScreen Then
+            Dim newloc = Viewport.ScreenToWorld(New Vector2(Destination.X, Destination.Y))
+            Destination = New Rectangle(newloc.X, newloc.Y, Destination.Width, Destination.Height)
+        End If
 
         ' Draw to screen
         View.Draw(Texture, Destination, Source, ColorMask)
