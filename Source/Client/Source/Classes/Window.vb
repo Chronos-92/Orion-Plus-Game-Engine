@@ -236,7 +236,6 @@ Public Class Window : Inherits Game
                 For i = 1 To MAX_PLAYERS
                     If IsPlaying(i) And GetPlayerMap(i) = GetPlayerMap(MyIndex) AndAlso Player(i).Y = Y Then
                         DrawPlayer(i)
-                        ' TODO: Draw emotes and paperdoll
                     End If
                     If PetAlive(i) AndAlso Player(i).Pet.Y = Y Then
                         DrawPet(i)
@@ -247,7 +246,6 @@ Public Class Window : Inherits Game
                 For i = 1 To MAX_MAP_NPCS
                     If MapNpc(i).Num > 0 AndAlso MapNpc(i).Y = Y Then
                         DrawMapNpc(i)
-                        ' TODO: Draw emotes
                     End If
                 Next
 
@@ -969,6 +967,48 @@ Public Class Window : Inherits Game
 
         ' render the actual sprite
         RenderTexture(TexCharacters(Spritenum), New Vector2(X, Y), Source)
+
+        ' Render paperdolls.
+        For i = 1 To EquipmentType.Count - 1
+            If GetPlayerEquipment(Index, i) > 0 AndAlso Item(GetPlayerEquipment(Index, i)).Paperdoll > 0 Then
+                DrawPaperdoll(X, Y, Item(GetPlayerEquipment(Index, i)).Paperdoll, Frame, FrameRow)
+            End If
+        Next
+
+        ' Check to see if we want to stop showing emote
+        With Player(Index)
+            If .EmoteTimer < GetTickCount() Then
+                .Emote = 0
+                .EmoteTimer = 0
+            End If
+        End With
+
+        ' Render Emotes
+        If Player(Index).Emote > 0 Then
+            X = X - ((PIC_X / 2) - (Source.Width / 2))
+            Y = Y - (PIC_Y * 1.5)
+            DrawEmotes(X, Y, Player(Index).Emote)
+        End If
+    End Sub
+    Public Sub DrawPaperdoll(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer, ByVal Frame As Integer, ByVal FrameRow As Integer)
+        Dim rec As Rectangle
+        Dim width As Integer, height As Integer
+
+        If Sprite < 1 Or Sprite > TexPaperdolls.Length Then Exit Sub
+        LoadTexture(TexPaperdolls(Sprite))
+
+
+        With rec
+            .Y = FrameRow * (TexPaperdolls(Sprite).Texture.Height / 4)
+            .Height = (TexPaperdolls(Sprite).Texture.Height / 4)
+            .X = Frame * (TexPaperdolls(Sprite).Texture.Width / 4)
+            .Width = (TexPaperdolls(Sprite).Texture.Width / 4)
+        End With
+
+        width = (rec.Right - rec.Left)
+        height = (rec.Bottom - rec.Top)
+
+        RenderTexture(TexPaperdolls(Sprite), New Vector2(X, Y), rec)
     End Sub
     Public Sub DrawPet(ByVal Index As Integer)
         Dim Anim As Byte, X As Integer, Y As Integer
@@ -1114,6 +1154,18 @@ Public Class Window : Inherits Game
         destrec = New Rectangle(X, Y, TexCharacters(Sprite).Texture.Width / 4, TexCharacters(Sprite).Texture.Height / 4)
 
         RenderTexture(TexCharacters(Sprite), New Vector2(X, Y), srcrec)
+
+        If Npc(MapNpc(MapNpcNum).Num).Behaviour = NpcBehavior.Quest Then
+            X = X - ((PIC_X / 2) - (srcrec.Width / 2))
+            Y = Y - (PIC_Y * 1.5)
+            If CanStartQuest(Npc(MapNpc(MapNpcNum).Num).QuestNum) Then
+                If Player(MyIndex).PlayerQuest(Npc(MapNpc(MapNpcNum).Num).QuestNum).Status = QUEST_NOT_STARTED Then
+                    DrawEmotes(X, Y, 5)
+                End If
+            ElseIf Player(MyIndex).PlayerQuest(Npc(MapNpc(MapNpcNum).Num).QuestNum).Status = QUEST_STARTED Then
+                DrawEmotes(X, Y, 9)
+            End If
+        End If
     End Sub
     Public Sub DrawMapResource(ByVal Resource_num As Integer)
         Dim Resource_master As Integer
@@ -1288,6 +1340,23 @@ Public Class Window : Inherits Game
         End With
 
         RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
+    End Sub
+    Public Sub DrawEmotes(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer)
+        Dim rec As Rectangle
+        Dim Frame = 0
+        If Sprite < 1 Or Sprite > TexEmotes.Length Then Exit Sub
+        LoadTexture(TexEmotes(Sprite))
+
+        If ShowAnimLayers = True Then Frame = 1
+
+        With rec
+            .Y = 0
+            .Height = PIC_X
+            .X = Frame * (TexEmotes(Sprite).Texture.Width / 2)
+            .Width = (TexEmotes(Sprite).Texture.Width / 2)
+        End With
+
+        RenderTexture(TexEmotes(Sprite), New Vector2(X, Y), rec)
     End Sub
     Public Sub DrawBars()
         Dim tmpY As Integer
