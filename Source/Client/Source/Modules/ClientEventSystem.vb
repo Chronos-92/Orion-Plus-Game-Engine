@@ -1,5 +1,6 @@
 ﻿Imports System.Drawing
 Imports System.Windows.Forms
+Imports Microsoft.Xna.Framework
 Imports SFML.Graphics
 Imports SFML.Window
 
@@ -671,9 +672,9 @@ newlist:
                                         End If
                                     Case 8
                                         Select Case tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).ConditionalBranch.Data1
-                                            Case Sex.MALE
+                                            Case Sex.Male
                                                 frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Conditional Branch: Player's Gender is Male")
-                                            Case Sex.FEMALE
+                                            Case Sex.Female
                                                 frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Conditional Branch: Player's  Gender is Female")
                                         End Select
                                 End Select
@@ -903,13 +904,13 @@ newlist:
                                     frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Warp Player To Map: " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Tile(" & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2 & "," & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data3 & ") while retaining direction.")
                                 Else
                                     Select Case tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data4 - 1
-                                        Case Direction.UP
+                                        Case Direction.Up
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Warp Player To Map: " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Tile(" & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2 & "," & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data3 & ") facing upward.")
-                                        Case Direction.DOWN
+                                        Case Direction.Down
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Warp Player To Map: " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Tile(" & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2 & "," & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data3 & ") facing downward.")
-                                        Case Direction.LEFT
+                                        Case Direction.Left
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Warp Player To Map: " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Tile(" & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2 & "," & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data3 & ") facing left.")
-                                        Case Direction.RIGHT
+                                        Case Direction.Right
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Warp Player To Map: " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Tile(" & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2 & "," & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data3 & ") facing right.")
                                     End Select
                                 End If
@@ -949,15 +950,15 @@ newlist:
                                 frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Give Player " & tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1 & " Experience.")
                             Case EventType.evShowChatBubble
                                 Select Case tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data1
-                                    Case TargetType.PLAYER
+                                    Case TargetType.Player
                                         frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Show Chat Bubble - " & Mid(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Text1, 1, 20) & "... - On Player")
-                                    Case TargetType.NPC
+                                    Case TargetType.Npc
                                         If Map.Npc(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2) <= 0 Then
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Show Chat Bubble - " & Mid(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Text1, 1, 20) & "... - On NPC [" & CStr(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2) & ". ]")
                                         Else
                                             frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Show Chat Bubble - " & Mid(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Text1, 1, 20) & "... - On NPC [" & CStr(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2) & ". " & Trim$(Npc(Map.Npc(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2)).Name) & "]")
                                         End If
-                                    Case TargetType.EVENT
+                                    Case TargetType.Event
                                         frmEditor_Events.lstCommands.Items.Add(indent & "@>" & "Show Chat Bubble - " & Mid(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Text1, 1, 20) & "... - On Event [" & CStr(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2) & ". " & Trim$(Map.Events(tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(i).Data2).Name) & "]")
                                 End Select
                             Case EventType.evLabel
@@ -1387,12 +1388,12 @@ newlist:
                 tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Index = Index
                 tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Text1 = frmEditor_Events.txtChatbubbleText.Text
                 If frmEditor_Events.optChatBubbleTarget0.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.PLAYER
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Player
                 ElseIf frmEditor_Events.optChatBubbleTarget1.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.NPC
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Npc
                     tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data2 = frmEditor_Events.cmbChatBubbleTarget.SelectedIndex + 1
                 ElseIf frmEditor_Events.optChatBubbleTarget2.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.EVENT
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Event
                     tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data2 = frmEditor_Events.cmbChatBubbleTarget.SelectedIndex + 1
                 End If
 
@@ -1920,11 +1921,11 @@ newlist:
                 isEdit = True
                 frmEditor_Events.txtChatbubbleText.Text = tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Text1
                 Select Case tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1
-                    Case TargetType.PLAYER
+                    Case TargetType.Player
                         frmEditor_Events.optChatBubbleTarget0.Checked = True
-                    Case TargetType.NPC
+                    Case TargetType.Npc
                         frmEditor_Events.optChatBubbleTarget1.Checked = True
-                    Case TargetType.EVENT
+                    Case TargetType.Event
                         frmEditor_Events.optChatBubbleTarget2.Checked = True
                 End Select
                 frmEditor_Events.fraDialogue.Visible = True
@@ -2283,12 +2284,12 @@ newlist:
             Case EventType.evShowChatBubble
                 tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Text1 = frmEditor_Events.txtChatbubbleText.Text
                 If frmEditor_Events.optChatBubbleTarget0.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.PLAYER
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Player
                 ElseIf frmEditor_Events.optChatBubbleTarget1.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.NPC
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Npc
                     tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data2 = frmEditor_Events.cmbChatBubbleTarget.SelectedIndex + 1
                 ElseIf frmEditor_Events.optChatBubbleTarget2.Checked = True Then
-                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.EVENT
+                    tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data1 = TargetType.Event
                     tmpEvent.Pages(curPageNum).CommandList(curlist).Commands(curslot).Data2 = frmEditor_Events.cmbChatBubbleTarget.SelectedIndex + 1
                 End If
             Case EventType.evLabel
@@ -2447,13 +2448,13 @@ newlist:
             .MovementSpeed = MovementSpeed
 
             Select Case dir
-                Case Direction.UP
+                Case Direction.Up
                     .YOffset = PIC_Y
-                Case Direction.DOWN
+                Case Direction.Down
                     .YOffset = PIC_Y * -1
-                Case Direction.LEFT
+                Case Direction.Left
                     .XOffset = PIC_X
-                Case Direction.RIGHT
+                Case Direction.Right
                     .XOffset = PIC_X * -1
             End Select
 
@@ -2828,12 +2829,12 @@ newlist:
 
                         g = Graphics.FromImage(targetBitmap)
 
-                        Dim sourceRect As New Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
-                        Dim destRect As New Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
+                        Dim sourceRect As New Drawing.Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
+                        Dim destRect As New Drawing.Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
 
                         g.DrawImage(sourceBitmap, destRect, sourceRect, GraphicsUnit.Pixel)
 
-                        g.DrawRectangle(Pens.Red, New Rectangle(GraphicSelX * PIC_X, GraphicSelY * PIC_Y, GraphicSelX2 * PIC_X, GraphicSelY2 * PIC_Y))
+                        g.DrawRectangle(Pens.Red, New Drawing.Rectangle(GraphicSelX * PIC_X, GraphicSelY * PIC_Y, GraphicSelX2 * PIC_X, GraphicSelY2 * PIC_Y))
 
                         g.Dispose()
 
@@ -2882,12 +2883,12 @@ newlist:
 
                         g = Graphics.FromImage(targetBitmap)
 
-                        Dim sourceRect As New Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
-                        Dim destRect As New Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
+                        Dim sourceRect As New Drawing.Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
+                        Dim destRect As New Drawing.Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
 
                         g.DrawImage(sourceBitmap, destRect, sourceRect, GraphicsUnit.Pixel)
 
-                        g.DrawRectangle(Pens.Red, New Rectangle(GraphicSelX * PIC_X, GraphicSelY * PIC_Y, (GraphicSelX2) * PIC_X, (GraphicSelY2) * PIC_Y))
+                        g.DrawRectangle(Pens.Red, New Drawing.Rectangle(GraphicSelX * PIC_X, GraphicSelY * PIC_Y, (GraphicSelX2) * PIC_X, (GraphicSelY2) * PIC_Y))
 
                         g.Dispose()
 
@@ -2915,8 +2916,8 @@ newlist:
 
                             g = Graphics.FromImage(targetBitmap)
 
-                            Dim sourceRect As New Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
-                            Dim destRect As New Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
+                            Dim sourceRect As New Drawing.Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height)  'This is the section we are pulling from the source graphic
+                            Dim destRect As New Drawing.Rectangle(0, 0, targetBitmap.Width, targetBitmap.Height)     'This is the rectangle in the target graphic we want to render to
 
                             g.DrawImage(sourceBitmap, destRect, sourceRect, GraphicsUnit.Pixel)
 
@@ -2965,8 +2966,8 @@ newlist:
 
                             g = Graphics.FromImage(targetBitmap)
 
-                            Dim sourceRect As New Rectangle(sRect.top, sRect.left, sRect.right, sRect.bottom)  'This is the section we are pulling from the source graphic
-                            Dim destRect As New Rectangle(dRect.top, dRect.left, dRect.right, dRect.bottom)     'This is the rectangle in the target graphic we want to render to
+                            Dim sourceRect As New Drawing.Rectangle(sRect.top, sRect.left, sRect.right, sRect.bottom)  'This is the section we are pulling from the source graphic
+                            Dim destRect As New Drawing.Rectangle(dRect.top, dRect.left, dRect.right, dRect.bottom)     'This is the rectangle in the target graphic we want to render to
 
                             g.DrawImage(sourceBitmap, destRect, sourceRect, GraphicsUnit.Pixel)
 
@@ -2983,7 +2984,7 @@ newlist:
     End Sub
 
     Public Sub DrawEvents()
-        Dim rec As Rectangle
+        Dim rec As Drawing.Rectangle
         Dim Width As Integer, Height As Integer, i As Integer, X As Integer, Y As Integer
         Dim tX As Integer
         Dim tY As Integer
@@ -3089,7 +3090,7 @@ nextevent:
     End Sub
 
     Public Sub DrawEvent(id As Integer)
-        Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, sRect As Rectangle, Anim As Integer, spritetop As Integer
+        Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, sRect As Drawing.Rectangle, Anim As Integer, spritetop As Integer
 
         If Map.MapEvents(id).Visible = 0 Then Exit Sub
         If InMapEditor Then Exit Sub
@@ -3107,25 +3108,25 @@ nextevent:
                 End If
 
                 Select Case Map.MapEvents(id).dir
-                    Case Direction.UP
+                    Case Direction.Up
                         If (Map.MapEvents(id).YOffset > 8) Then Anim = Map.MapEvents(id).Steps
-                    Case Direction.DOWN
+                    Case Direction.Down
                         If (Map.MapEvents(id).YOffset < -8) Then Anim = Map.MapEvents(id).Steps
-                    Case Direction.LEFT
+                    Case Direction.Left
                         If (Map.MapEvents(id).XOffset > 8) Then Anim = Map.MapEvents(id).Steps
-                    Case Direction.RIGHT
+                    Case Direction.Right
                         If (Map.MapEvents(id).XOffset < -8) Then Anim = Map.MapEvents(id).Steps
                 End Select
 
                 ' Set the left
                 Select Case Map.MapEvents(id).ShowDir
-                    Case Direction.UP
+                    Case Direction.Up
                         spritetop = 3
-                    Case Direction.RIGHT
+                    Case Direction.Right
                         spritetop = 2
-                    Case Direction.DOWN
+                    Case Direction.Down
                         spritetop = 0
-                    Case Direction.LEFT
+                    Case Direction.Left
                         spritetop = 1
                 End Select
 
@@ -3135,7 +3136,7 @@ nextevent:
                 Width = CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4
                 Height = CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Height / 4
 
-                sRect = New Rectangle((Anim) * (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4), spritetop * (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Height / 4), (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4), (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Height / 4))
+                sRect = New Drawing.Rectangle((Anim) * (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4), spritetop * (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Height / 4), (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4), (CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Height / 4))
                 ' Calculate the X
                 X = Map.MapEvents(id).X * PIC_X + Map.MapEvents(id).XOffset - ((CharacterGFXInfo(Map.MapEvents(id).GraphicNum).Width / 4 - 32) / 2)
 
@@ -3252,28 +3253,29 @@ nextevent:
 
 #Region "Misc"
 
-    Sub ProcessEventMovement(ByVal id As Integer)
+    Sub ProcessEventMovement(ByVal id As Integer, ByVal Time As GameTime)
+        Dim ElapsedTime = Time.ElapsedGameTime.TotalMilliseconds
 
         If id > Map.EventCount Then Exit Sub
 
         If Map.MapEvents(id).Moving = 1 Then
             Select Case Map.MapEvents(id).dir
-                Case Direction.UP
+                Case Direction.Up
                     Map.MapEvents(id).YOffset = Map.MapEvents(id).YOffset - ((ElapsedTime / 1000) * (Map.MapEvents(id).MovementSpeed * SIZE_X))
                     If Map.MapEvents(id).YOffset < 0 Then Map.MapEvents(id).YOffset = 0
-                Case Direction.DOWN
+                Case Direction.Down
                     Map.MapEvents(id).YOffset = Map.MapEvents(id).YOffset + ((ElapsedTime / 1000) * (Map.MapEvents(id).MovementSpeed * SIZE_X))
                     If Map.MapEvents(id).YOffset > 0 Then Map.MapEvents(id).YOffset = 0
-                Case Direction.LEFT
+                Case Direction.Left
                     Map.MapEvents(id).XOffset = Map.MapEvents(id).XOffset - ((ElapsedTime / 1000) * (Map.MapEvents(id).MovementSpeed * SIZE_X))
                     If Map.MapEvents(id).XOffset < 0 Then Map.MapEvents(id).XOffset = 0
-                Case Direction.RIGHT
+                Case Direction.Right
                     Map.MapEvents(id).XOffset = Map.MapEvents(id).XOffset + ((ElapsedTime / 1000) * (Map.MapEvents(id).MovementSpeed * SIZE_X))
                     If Map.MapEvents(id).XOffset > 0 Then Map.MapEvents(id).XOffset = 0
             End Select
             ' Check if completed walking over to the next tile
             If Map.MapEvents(id).Moving > 0 Then
-                If Map.MapEvents(id).dir = Direction.RIGHT Or Map.MapEvents(id).dir = Direction.DOWN Then
+                If Map.MapEvents(id).dir = Direction.Right Or Map.MapEvents(id).dir = Direction.Down Then
                     If (Map.MapEvents(id).XOffset >= 0) And (Map.MapEvents(id).YOffset >= 0) Then
                         Map.MapEvents(id).Moving = 0
                         If Map.MapEvents(id).Steps = 1 Then

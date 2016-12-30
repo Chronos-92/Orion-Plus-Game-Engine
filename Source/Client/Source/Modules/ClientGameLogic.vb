@@ -1,6 +1,7 @@
 ﻿Imports System.Drawing
 Imports System.Threading
 Imports System.Windows.Forms
+Imports Microsoft.Xna.Framework
 
 Module ClientGameLogic
     Public GameRand As New Random()
@@ -8,8 +9,8 @@ Module ClientGameLogic
     Sub GameLoop()
         Dim i As Integer
         Dim starttime As Integer, Tick As Integer, fogtmr As Integer
-        Dim tmpfps As Integer, WalkTimer As Integer, FrameTime As Integer
-        Dim destrect As Rectangle, tmr10000 As Integer
+        Dim tmpfps As Integer, FrameTime As Integer
+        Dim destrect As Drawing.Rectangle, tmr10000 As Integer
         Dim tmr100 As Integer, tmr500 As Integer, tmrconnect As Integer
 
         starttime = GetTickCount()
@@ -26,18 +27,18 @@ Module ClientGameLogic
             If frmmenuvisible = True Then
                 If tmrconnect < GetTickCount() Then
                     If IsConnected() = True Then
-                        frmMenu.lblServerStatus.ForeColor = Color.LightGreen
+                        frmMenu.lblServerStatus.ForeColor = Drawing.Color.LightGreen
                         frmMenu.lblServerStatus.Text = "Online"
                     Else
                         i = i + 1
                         If i = 5 Then
                             Connect()
                             frmMenu.lblServerStatus.Text = "Reconnecting"
-                            frmMenu.lblServerStatus.ForeColor = Color.Orange
+                            frmMenu.lblServerStatus.ForeColor = Drawing.Color.Orange
                             i = 0
                         Else
                             frmMenu.lblServerStatus.Text = "Offline"
-                            frmMenu.lblServerStatus.ForeColor = Color.Red
+                            frmMenu.lblServerStatus.ForeColor = Drawing.Color.Red
                         End If
                     End If
                     tmrconnect = GetTickCount() + 500
@@ -179,39 +180,6 @@ Module ClientGameLogic
                 End If
 
                 SyncLock MapLock
-                    If CanMoveNow Then
-                        CheckMovement() ' Check if player is trying to move
-                        CheckAttack()   ' Check to see if player is trying to attack
-                    End If
-
-                    ' Process input before rendering, otherwise input will be behind by 1 frame
-                    If WalkTimer < Tick Then
-
-                        For i = 1 To MAX_PLAYERS
-                            If IsPlaying(i) Then
-                                ProcessMovement(i)
-                                If PetAlive(i) Then
-                                    ProcessPetMovement(i)
-                                End If
-                            End If
-                        Next
-
-                        ' Process npc movements (actually move them)
-                        For i = 1 To MAX_MAP_NPCS
-                            If Map.Npc(i) > 0 Then
-                                ProcessNpcMovement(i)
-                            End If
-                        Next i
-
-                        If Map.CurrentEvents > 0 Then
-                            For i = 1 To Map.CurrentEvents
-                                ProcessEventMovement(i)
-                            Next i
-                        End If
-
-                        WalkTimer = Tick + 30 ' edit this value to change WalkTimer
-                    End If
-
                     ' fog scrolling
                     If fogtmr < Tick Then
                         If CurrentFogSpeed > 0 Then
@@ -261,7 +229,7 @@ Module ClientGameLogic
                         FadeOut()
                     End If
 
-                    destrect = New Rectangle(0, 0, ScreenX, ScreenY)
+                    destrect = New Drawing.Rectangle(0, 0, ScreenX, ScreenY)
                     Application.DoEvents()
 
                     If GettingMap Then
@@ -296,7 +264,8 @@ Module ClientGameLogic
 
     End Sub
 
-    Sub ProcessNpcMovement(ByVal MapNpcNum As Integer)
+    Sub ProcessNpcMovement(ByVal MapNpcNum As Integer, ByVal Time As GameTime)
+        Dim ElapsedTime = Time.ElapsedGameTime.TotalMilliseconds
 
         ' Check if NPC is walking, and if so process moving them over
         If MapNpc(MapNpcNum).Moving = MovementType.Walking Then

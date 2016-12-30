@@ -1,4 +1,5 @@
 ﻿Imports System.Drawing
+Imports Microsoft.Xna.Framework
 
 Module ClientPets
 #Region "Globals etc"
@@ -338,8 +339,8 @@ Module ClientPets
 #End Region
 
 #Region "Movement"
-    Sub ProcessPetMovement(ByVal Index As Integer)
-
+    Sub ProcessPetMovement(ByVal Index As Integer, ByVal Time As GameTime)
+        Dim ElapsedTime = Time.ElapsedGameTime.TotalMilliseconds
         ' Check if pet is walking, and if so process moving them over
 
         If Player(Index).Pet.Moving = MovementType.Walking Then
@@ -416,7 +417,7 @@ Module ClientPets
     Public Sub DrawPet(ByVal Index As Integer)
         Dim Anim As Byte, X As Integer, Y As Integer
         Dim Sprite As Integer, spriteleft As Integer
-        Dim srcrec As Rectangle
+        Dim srcrec As Drawing.Rectangle
         Dim attackspeed As Integer
 
         Sprite = Pet(Player(Index).Pet.Num).Sprite
@@ -473,7 +474,7 @@ Module ClientPets
                 spriteleft = 1
         End Select
 
-        srcrec = New Rectangle((Anim) * (CharacterGFXInfo(Sprite).Width / 4), spriteleft * (CharacterGFXInfo(Sprite).Height / 4), (CharacterGFXInfo(Sprite).Width / 4), (CharacterGFXInfo(Sprite).Height / 4))
+        srcrec = New Drawing.Rectangle((Anim) * (CharacterGFXInfo(Sprite).Width / 4), spriteleft * (CharacterGFXInfo(Sprite).Height / 4), (CharacterGFXInfo(Sprite).Width / 4), (CharacterGFXInfo(Sprite).Height / 4))
 
         ' Calculate the X
         X = Player(Index).Pet.X * PIC_X + Player(Index).Pet.XOffset - ((CharacterGFXInfo(Sprite).Width / 4 - 32) / 2)
@@ -540,7 +541,7 @@ Module ClientPets
 
     Sub DrawPetBar()
         Dim skillnum As Integer, skillpic As Integer
-        Dim rec As Rectangle, rec_pos As Rectangle
+        Dim rec As Drawing.Rectangle, rec_pos As Drawing.Rectangle
 
         If Not PetAlive(MyIndex) Then Exit Sub
 

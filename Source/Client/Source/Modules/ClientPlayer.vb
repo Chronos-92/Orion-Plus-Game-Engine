@@ -1,4 +1,6 @@
-﻿Module ClientPlayer
+﻿Imports Microsoft.Xna.Framework
+
+Module ClientPlayer
     Sub CheckAttack()
         Dim attackspeed As Integer, X As Integer, Y As Integer
         Dim Buffer As ByteBuffer
@@ -420,9 +422,9 @@
 
     End Function
 
-    Sub ProcessMovement(ByVal Index As Integer)
+    Sub ProcessMovement(ByVal Index As Integer, ByVal Time As GameTime)
         Dim MovementSpeed As Integer
-
+        Dim ElapsedTime = Time.ElapsedGameTime.TotalMilliseconds
         ' Check if player is walking, and if so process moving them over
         Select Case Player(Index).Moving
             Case MovementType.Walking : MovementSpeed = ((ElapsedTime / 1000) * (WALK_SPEED * SIZE_X))

@@ -52,6 +52,10 @@ Public Class Window : Inherits Game
     Private CurX As Integer
     Private CurY As Integer
 
+    ' Timers
+    Private WalkTimer As TimeSpan
+
+#Region "Constructor"
     Public Sub New(ByVal ResX As Integer, ByVal ResY As Integer, ByVal IsFullscreen As Boolean)
         ' Create a brand new graphics device.
         Device = New GraphicsDeviceManager(Me)
@@ -62,7 +66,9 @@ Public Class Window : Inherits Game
         ResolutionY = ResY
 
     End Sub
+#End Region
 
+#Region "Initalization and Loading"
     Protected Overrides Sub Initialize()
         ' Set our window size according to settings.
         Device.PreferredBackBufferWidth = ResolutionX
@@ -97,16 +103,13 @@ Public Class Window : Inherits Game
 
         MyBase.Initialize()     ' Do not touch
     End Sub
-
     Protected Overrides Sub LoadContent()
         ' Create our MonoGame objects.
         View = New SpriteBatch(Device.GraphicsDevice)
 
         ' Load all our font sizes.
         LoadFonts()
-
     End Sub
-
     Protected Overrides Sub UnloadContent()
         ' Destroy all our textures.
         DestroyTextures()
@@ -117,7 +120,9 @@ Public Class Window : Inherits Game
 
         MyBase.UnloadContent()      ' Do not touch!
     End Sub
+#End Region
 
+#Region "Update Game"
     Protected Overrides Sub Update(Time As GameTime)
         ' If we have to, resize our backbuffer.
         UpdateWindowSize()
@@ -132,6 +137,35 @@ Public Class Window : Inherits Game
         HandleKeyboard()
         HandleMouse()
 
+        SyncLock MapLock
+            ' Process player input before anything else.
+            If CanMoveNow Then
+                CheckMovement()
+                CheckAttack()
+            End If
+
+            ' Process Movement for all our movable characters.
+            If WalkTimer < Time.TotalGameTime Then
+                For i = 1 To MAX_PLAYERS
+                    If IsPlaying(i) Then ProcessMovement(i, Time)
+                    If PetAlive(i) Then
+                        ProcessPetMovement(i, Time)
+                    End If
+                Next
+                For i = 1 To MAX_MAP_NPCS
+                    If Map.Npc(i) > 0 Then ProcessNpcMovement(i, Time)
+                Next i
+                If Map.CurrentEvents > 0 Then
+                    For i = 1 To Map.CurrentEvents
+                        ProcessEventMovement(i, Time)
+                    Next i
+                End If
+
+                WalkTimer = Time.TotalGameTime.Add(New TimeSpan(0, 0, 0, 0, 30))
+            End If
+
+        End SyncLock
+
         ' Check to see if we need to stop anyone from getting stuck in their attack animation.
         UpdatePlayerAttackTimers()
         UpdateNpcAttackTimers()
@@ -144,7 +178,9 @@ Public Class Window : Inherits Game
 
         MyBase.Update(Time) '   Do not touch
     End Sub
+#End Region
 
+#Region "Render Game"
     Protected Overrides Sub Draw(Time As GameTime)
         ' Clear our screen and give it a lovely black background colour then start rendering new stuff!
         GraphicsDevice.Clear(Color.Black)
@@ -339,12 +375,14 @@ Public Class Window : Inherits Game
         DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, ToScreen:=True)
         DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, ToScreen:=True)
         DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(5, 35), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("GameTime: {0}", Time.TotalGameTime), 10, New Vector2(5, 50), Color.Yellow, Color.Black, ToScreen:=True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
 
         MyBase.Draw(Time)   ' Do not touch.
     End Sub
+#End Region
 
 #Region "Init Data"
     Private Sub InitTextures()
@@ -907,16 +945,16 @@ Public Class Window : Inherits Game
         If Player(Index).AttackTimer + (AttackSpeed / 2) > GetTickCount() AndAlso Player(Index).Attacking = 1 Then Frame = 3
         Select Case GetPlayerDir(Index)
             Case Direction.Up
-                If Frame = 0 AndAlso Player(Index).YOffset > 8 Then Frame = Player(Index).Steps
+                If Player(Index).YOffset > 8 Then Frame = Player(Index).Steps
                 FrameRow = 3
             Case Direction.Down
-                If Frame = 0 AndAlso Player(Index).YOffset < -8 Then Frame = Player(Index).Steps
+                If Player(Index).YOffset < -8 Then Frame = Player(Index).Steps
                 FrameRow = 0
             Case Direction.Left
-                If Frame = 0 AndAlso Player(Index).XOffset > 8 Then Frame = Player(Index).Steps
+                If Player(Index).XOffset > 8 Then Frame = Player(Index).Steps
                 FrameRow = 1
             Case Direction.Right
-                If Frame = 0 AndAlso Player(Index).XOffset < -8 Then Frame = Player(Index).Steps
+                If Player(Index).XOffset < -8 Then Frame = Player(Index).Steps
                 FrameRow = 2
         End Select
         Dim Source = New Rectangle((Frame) * (TexCharacters(Spritenum).Texture.Width / 4), FrameRow * (TexCharacters(Spritenum).Texture.Height / 4), (TexCharacters(Spritenum).Texture.Width / 4), (TexCharacters(Spritenum).Texture.Height / 4))
