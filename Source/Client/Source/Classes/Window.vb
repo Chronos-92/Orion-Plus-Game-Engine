@@ -173,15 +173,15 @@ Public Class Window : Inherits Game
         ' Cache all the text we'll need to render soon.
         CacheText()
 
-        ' Update Framerate
-        FrameRate = CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)
-
         MyBase.Update(Time) '   Do not touch
     End Sub
 #End Region
 
 #Region "Render Game"
     Protected Overrides Sub Draw(Time As GameTime)
+        ' Update Framerate
+        FrameRate = CType(1 / Time.ElapsedGameTime.TotalSeconds, Integer)
+
         ' Clear our screen and give it a lovely black background colour then start rendering new stuff!
         GraphicsDevice.Clear(Color.Black)
         View.Begin(transformMatrix:=Viewport.GetViewMatrix(), blendState:=BlendState.NonPremultiplied, samplerState:=SamplerState.PointClamp)
