@@ -21,6 +21,7 @@ Module ClientConstants
     Public Const DIR_ROOT As String = "Data Files"
     Public Const DIR_GRAPHICS As String = "Graphics"
     Public Const DIR_FONTS As String = "Fonts"
+    Public Const DIR_GUI As String = "Gui"
 
     Public Const SOUND_PATH As String = "\Data Files\sound\"
     Public Const MUSIC_PATH As String = "\Data Files\music\"

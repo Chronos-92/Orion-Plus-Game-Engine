@@ -44,6 +44,7 @@ Public Class Window : Inherits Game
     Private TexSkillicons() As TextureRec
     Private TexMisc As Dictionary(Of String, TextureRec)
     Private TexRectangle As Texture2D
+    Private TexGui As Dictionary(Of String, TextureRec)
 
     ' Fonts
     Private GameFonts As Dictionary(Of Integer, SpriteFont)
@@ -365,11 +366,14 @@ Public Class Window : Inherits Game
 
         End If
 
+        ' Draw Gui on top of everything else.
+        DrawGUI()
+
         ' Draw debug info
-        DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 5), Color.Yellow, Color.Black, ToScreen:=True)
-        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 20), Color.Yellow, Color.Black, ToScreen:=True)
-        DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(5, 35), Color.Yellow, Color.Black, ToScreen:=True)
-        DrawText(String.Format("GameTime: {0}", Time.TotalGameTime), 10, New Vector2(5, 50), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Framerate: {0}", FrameRate), 10, New Vector2(5, 110), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Camera X: {0} Y: {1}", Viewport.Position.X, Viewport.Position.Y), 10, New Vector2(5, 125), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("Mouse X: {0} Y: {1}", CurX, CurY), 10, New Vector2(5, 140), Color.Yellow, Color.Black, ToScreen:=True)
+        DrawText(String.Format("GameTime: {0}", Time.TotalGameTime), 10, New Vector2(5, 155), Color.Yellow, Color.Black, ToScreen:=True)
 
         ' Draw everything to the screen. Do not put anything beyond this point.
         View.End()
@@ -396,6 +400,9 @@ Public Class Window : Inherits Game
 
         ' All miscellanious files.
         InitMiscGraphics()
+
+        ' All Gui files.
+        InitGuiGraphics()
 
         ' Our text rendering cache.
         TexTextCache = New Dictionary(Of String, TextCacheRec)()
@@ -435,11 +442,24 @@ Public Class Window : Inherits Game
             InitMisc(Path.GetFileNameWithoutExtension(File.Name))
         Next
     End Sub
+    Private Sub InitGuiGraphics()
+        TexGui = New Dictionary(Of String, TextureRec)()
+        Dim Dir = New DirectoryInfo(Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS, DIR_GUI))
+        For Each File In Dir.EnumerateFiles(String.Format("*{0}", GFX_EXT), SearchOption.TopDirectoryOnly)
+            InitGui(Path.GetFileNameWithoutExtension(File.Name))
+        Next
+    End Sub
     Private Sub InitMisc(ByVal File As String)
         Dim t = New TextureRec()
         t.FileName = Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS, String.Format("{0}{1}", File, GFX_EXT))
         t.LastAccess = DateTime.MinValue
         TexMisc.Add(File, t)
+    End Sub
+    Private Sub InitGui(ByVal File As String)
+        Dim t = New TextureRec()
+        t.FileName = Path.Combine(AppLocation, DIR_ROOT, DIR_GRAPHICS, DIR_GUI, String.Format("{0}{1}", File, GFX_EXT))
+        t.LastAccess = DateTime.MinValue
+        TexGui.Add(File, t)
     End Sub
     Private Sub InitRectangle()
         TexRectangle = New Texture2D(GraphicsDevice, 1, 1)
@@ -615,7 +635,7 @@ Public Class Window : Inherits Game
             End Select
         End With
     End Sub
-    Public Sub DrawAutoTile(ByVal layerNum As Integer, ByVal destX As Integer, ByVal destY As Integer, ByVal quarterNum As Integer, ByVal X As Integer, ByVal Y As Integer, Optional forceFrame As Integer = 0, Optional strict As Boolean = True)
+    Private Sub DrawAutoTile(ByVal layerNum As Integer, ByVal destX As Integer, ByVal destY As Integer, ByVal quarterNum As Integer, ByVal X As Integer, ByVal Y As Integer, Optional forceFrame As Integer = 0, Optional strict As Boolean = True)
         If Map.Tile(X, Y).Layer Is Nothing Or Map.Tile(X, Y).Layer(layerNum).AutoTile = Nothing Then Exit Sub
         ' calculate the offset
         If forceFrame > 0 Then
@@ -653,7 +673,7 @@ Public Class Window : Inherits Game
         RenderTexture(TexTilesets(Map.Tile(X, Y).Layer(layerNum).Tileset), New Vector2(destX, destY), New Rectangle(Autotile(X, Y).Layer(layerNum).srcX(quarterNum) + XOffset, Autotile(X, Y).Layer(layerNum).srcY(quarterNum) + YOffset, 16, 16))
 
     End Sub
-    Public Sub DrawFurniture(ByVal Index As Integer, Layer As Integer)
+    Private Sub DrawFurniture(ByVal Index As Integer, Layer As Integer)
         Dim i As Integer, ItemNum As Integer
         Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, X1 As Integer, Y1 As Integer
 
@@ -688,7 +708,7 @@ Public Class Window : Inherits Game
         Next
 
     End Sub
-    Public Sub DrawEvent(id As Integer)
+    Private Sub DrawEvent(id As Integer)
         Dim X As Integer, Y As Integer, Width As Integer, Height As Integer, sRect As Rectangle, Anim As Integer, spritetop As Integer
 
         If Map.MapEvents(id).Visible = 0 Then Exit Sub
@@ -782,7 +802,7 @@ Public Class Window : Inherits Game
         End Select
 
     End Sub
-    Public Sub DrawBlood(ByVal Index As Integer)
+    Private Sub DrawBlood(ByVal Index As Integer)
         Dim srcrec As Rectangle
         Dim destrec As Rectangle
 
@@ -795,7 +815,7 @@ Public Class Window : Inherits Game
         End With
 
     End Sub
-    Public Sub DrawDoor(ByVal X As Integer, ByVal Y As Integer)
+    Private Sub DrawDoor(ByVal X As Integer, ByVal Y As Integer)
         Dim rec As Rectangle
 
         Dim x2 As Integer, y2 As Integer
@@ -840,7 +860,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexMisc("Door"), New Vector2(X * PIC_X, Y * PIC_Y), rec)
     End Sub
-    Public Sub DrawItem(ByVal itemnum As Integer)
+    Private Sub DrawItem(ByVal itemnum As Integer)
         Dim srcrec As Rectangle
         Dim PicNum As Integer
         Dim x As Integer, y As Integer
@@ -986,7 +1006,7 @@ Public Class Window : Inherits Game
             DrawEmotes(X, Y, Player(Index).Emote)
         End If
     End Sub
-    Public Sub DrawPaperdoll(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer, ByVal Frame As Integer, ByVal FrameRow As Integer)
+    Private Sub DrawPaperdoll(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer, ByVal Frame As Integer, ByVal FrameRow As Integer)
         Dim rec As Rectangle
         Dim width As Integer, height As Integer
 
@@ -1006,7 +1026,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexPaperdolls(Sprite), New Vector2(X, Y), rec)
     End Sub
-    Public Sub DrawPet(ByVal Index As Integer)
+    Private Sub DrawPet(ByVal Index As Integer)
         Dim Anim As Byte, X As Integer, Y As Integer
         Dim Sprite As Integer, spriteleft As Integer
         Dim srcrec As Rectangle
@@ -1163,7 +1183,7 @@ Public Class Window : Inherits Game
             End If
         End If
     End Sub
-    Public Sub DrawMapResource(ByVal Resource_num As Integer)
+    Private Sub DrawMapResource(ByVal Resource_num As Integer)
         Dim Resource_master As Integer
 
         Dim Resource_state As Integer
@@ -1208,7 +1228,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexResources(Resource_sprite), New Vector2(X, Y), rec)
     End Sub
-    Public Sub DrawProjectile(ByVal ProjectileNum As Integer)
+    Private Sub DrawProjectile(ByVal ProjectileNum As Integer)
         Dim rec As Rectangle
         Dim CanClearProjectile As Boolean
         Dim CollisionIndex As Integer
@@ -1307,7 +1327,7 @@ Public Class Window : Inherits Game
         RenderTexture(TexProjectiles(Sprite), New Vector2(X * PIC_X, Y * PIC_Y), rec)
 
     End Sub
-    Public Sub DrawTarget(ByVal X As Integer, ByVal Y As Integer)
+    Private Sub DrawTarget(ByVal X As Integer, ByVal Y As Integer)
         Dim rec As Rectangle
 
         ' Make sure our texture is loaded.
@@ -1322,7 +1342,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
     End Sub
-    Public Sub DrawHover(ByVal X As Integer, ByVal Y As Integer)
+    Private Sub DrawHover(ByVal X As Integer, ByVal Y As Integer)
         Dim rec As Rectangle
 
         ' Make sure it's loaded.
@@ -1337,7 +1357,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexMisc("Target"), New Vector2(X, Y), rec)
     End Sub
-    Public Sub DrawEmotes(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer)
+    Private Sub DrawEmotes(ByVal X As Integer, ByVal Y As Integer, ByVal Sprite As Integer)
         Dim rec As Rectangle
         Dim Frame = 0
         If Sprite < 1 Or Sprite > TexEmotes.Length Then Exit Sub
@@ -1354,7 +1374,7 @@ Public Class Window : Inherits Game
 
         RenderTexture(TexEmotes(Sprite), New Vector2(X, Y), rec)
     End Sub
-    Public Sub DrawBars()
+    Private Sub DrawBars()
         Dim tmpY As Integer
         Dim tmpX As Integer
 
@@ -1439,7 +1459,7 @@ Public Class Window : Inherits Game
             End If
         End If
     End Sub
-    Public Sub DrawWeather()
+    Private Sub DrawWeather()
         Dim i As Integer, SpriteLeft As Integer
 
         For i = 1 To MAX_WEATHER_PARTICLES
@@ -1454,16 +1474,16 @@ Public Class Window : Inherits Game
         Next
 
     End Sub
-    Public Sub DrawThunderEffect()
+    Private Sub DrawThunderEffect()
         If DrawThunder > 0 Then
             RenderTexture(TexRectangle, New Rectangle(0, 0, Device.PreferredBackBufferWidth, Device.PreferredBackBufferHeight), New Rectangle(0, 0, 1, 1), Color.LightYellow)
             DrawThunder -= 1
         End If
     End Sub
-    Public Sub DrawMapTint()
+    Private Sub DrawMapTint()
         RenderTexture(TexRectangle, New Rectangle(0, 0, Device.PreferredBackBufferWidth, Device.PreferredBackBufferHeight), New Rectangle(0, 0, 1, 1), New Color(CurrentTintR, CurrentTintG, CurrentTintB, CurrentTintA), True)
     End Sub
-    Public Sub DrawFog()
+    Private Sub DrawFog()
         Dim fogNum = CurrentFog
         If fogNum <= 0 Or fogNum > TexFog.Length Then Exit Sub
         LoadTexture(TexFog(fogNum))
@@ -1476,6 +1496,64 @@ Public Class Window : Inherits Game
                 RenderTexture(TexFog(fogNum), New Vector2(X * TexFog(fogNum).Texture.Width, Y * TexFog(fogNum).Texture.Height), New Rectangle(0, 0, TexFog(fogNum).Texture.Width, TexFog(fogNum).Texture.Height), New Color(255, 255, 255, CurrentFogOpacity), True)
             Next
         Next
+    End Sub
+
+    Private Sub DrawGui()
+        DrawPlayerStatus()
+    End Sub
+
+    Private Sub DrawPlayerStatus()
+        Dim BarWidth As Integer
+        Dim Text As String
+        Dim Size = 8
+
+        ' Hud Background
+        LoadTexture(TexGui("HUD"))
+        RenderTexture(TexGui("HUD"), New Vector2(10, 10), TexGui("HUD").Texture.Bounds, True)
+
+        ' Player Face if we have one available.
+        Dim Face = GetPlayerSprite(MyIndex)
+        If Face >= 1 AndAlso Face <= TexFaces.Length Then
+            LoadTexture(TexFaces(Face))
+            RenderTexture(TexFaces(Face), New Vector2(15, 15), TexFaces(Face).Texture.Bounds, True)
+        End If
+
+        ' HP, MP and Exp bars.
+        LoadTexture(TexGui("HPBar"))
+        Text = String.Format("{0}/{1}", GetPlayerVital(MyIndex, Vitals.HP), GetPlayerMaxVital(MyIndex, Vitals.HP))
+        BarWidth = GetPlayerVital(MyIndex, Vitals.HP) * (TexGui("HPBar").Texture.Width / GetPlayerMaxVital(MyIndex, Vitals.HP))
+        RenderTexture(TexGui("HPBar"), New Vector2(120, 23), New Rectangle(0, 0, BarWidth, TexGui("HPBar").Texture.Height), True)
+        DrawText(Text, Size, New Vector2(120 + (TexGui("HPBar").Texture.Width / 2) - (GameFonts(Size).MeasureString(Text).X / 2), 24), Color.White, Color.Black, True, True)
+
+        LoadTexture(TexGui("MPBar"))
+        Text = String.Format("{0}/{1}", GetPlayerVital(MyIndex, Vitals.MP), GetPlayerMaxVital(MyIndex, Vitals.MP))
+        BarWidth = GetPlayerVital(MyIndex, Vitals.MP) * (TexGui("MPBar").Texture.Width / GetPlayerMaxVital(MyIndex, Vitals.MP))
+        RenderTexture(TexGui("MPBar"), New Vector2(120, 43), New Rectangle(0, 0, BarWidth, TexGui("MPBar").Texture.Height), True)
+        DrawText(Text, Size, New Vector2(120 + (TexGui("MPBar").Texture.Width / 2) - (GameFonts(Size).MeasureString(Text).X / 2), 44), Color.White, Color.Black, True, True)
+
+        LoadTexture(TexGui("EXPBar"))
+        Text = String.Format("{0}/{1}", GetPlayerExp(MyIndex), NextlevelExp)
+        BarWidth = GetPlayerExp(MyIndex) * (TexGui("EXPBar").Texture.Width / NextlevelExp)
+        RenderTexture(TexGui("EXPBar"), New Vector2(120, 63), New Rectangle(0, 0, BarWidth, TexGui("EXPBar").Texture.Height), True)
+        DrawText(Text, Size, New Vector2(120 + (TexGui("EXPBar").Texture.Width / 2) - (GameFonts(Size).MeasureString(Text).X / 2), 64), Color.White, Color.Black, True, True)
+
+        ' Map name, if we have one.
+        Text = Map.Name.Trim()
+        If Map.Name.Trim().Length > 0 Then
+            Dim MyColor As Color
+            Select Case Map.Moral
+                Case MapMoral.Indoors
+                    MyColor = Color.LightYellow
+                Case MapMoral.Safe
+                    MyColor = Color.White
+                Case MapMoral.None
+                    MyColor = Color.Red
+            End Select
+            DrawText(String.Format("Map: {0}", Map.Name), 10, New Vector2(120, 80), MyColor, Color.Black, True, True)
+        End If
+
+        ' Level display
+        DrawText(String.Format("Level: {0}", GetPlayerLevel(MyIndex)), 10, New Vector2(295, 24), Color.White, Color.Black, True, True)
     End Sub
 
     Private Sub DrawPlayerName(ByVal Index As Integer, ByVal Size As Integer)
@@ -1551,7 +1629,7 @@ Public Class Window : Inherits Game
         ' Draw name
         DrawText(Npc(npcNum).Name.Trim(), Size, New Vector2(TextX, TextY), color, backcolor, CacheText:=True)
     End Sub
-    Public Sub DrawEventName(ByVal Index As Integer, ByVal Size As Integer)
+    Private Sub DrawEventName(ByVal Index As Integer, ByVal Size As Integer)
         Dim TextX As Integer
         Dim TextY As Integer
         Dim color As Color, backcolor As Color
@@ -1612,7 +1690,7 @@ Public Class Window : Inherits Game
         Next
 
     End Sub
-    Sub DrawActionMsg(ByVal Index As Integer, ByVal Size As Integer)
+    Private Sub DrawActionMsg(ByVal Index As Integer, ByVal Size As Integer)
         Dim X As Integer, Y As Integer, i As Integer, Time As Integer
 
         ' how long we want each message to appear
@@ -1622,10 +1700,10 @@ Public Class Window : Inherits Game
 
                 If ActionMsg(Index).Y > 0 Then
                     X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
-                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2
+                    Y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2
                 Else
                     X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
-                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18
+                    Y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18
                 End If
 
             Case ActionMsgType.Scroll
@@ -1633,11 +1711,11 @@ Public Class Window : Inherits Game
 
                 If ActionMsg(Index).Y > 0 Then
                     X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
-                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2 - (ActionMsg(Index).Scroll * 0.6)
+                    Y = ActionMsg(Index).Y - Int(PIC_Y \ 2) - 2 - (ActionMsg(Index).Scroll * 0.6)
                     ActionMsg(Index).Scroll = ActionMsg(Index).Scroll + 1
                 Else
                     X = ActionMsg(Index).X + Int(PIC_X \ 2) - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X \ 2
-                    y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18 + (ActionMsg(Index).Scroll * 0.6)
+                    Y = ActionMsg(Index).Y - Int(PIC_Y \ 2) + 18 + (ActionMsg(Index).Scroll * 0.6)
                     ActionMsg(Index).Scroll = ActionMsg(Index).Scroll + 1
                 End If
 
@@ -1654,12 +1732,12 @@ Public Class Window : Inherits Game
                     End If
                 Next
                 X = Device.PreferredBackBufferWidth / 2 - GameFonts(Size).MeasureString(ActionMsg(Index).message.Trim()).X / 2
-                y = Device.PreferredBackBufferHeight / 2
+                Y = Device.PreferredBackBufferHeight / 2
 
         End Select
 
         If GetTickCount() < ActionMsg(Index).Created + Time Then
-            DrawText(ActionMsg(Index).message, Size, New Vector2(X, y), GetColorFromType(ActionMsg(Index).color), Color.Black, CacheText:=True)
+            DrawText(ActionMsg(Index).message, Size, New Vector2(X, Y), GetColorFromType(ActionMsg(Index).color), Color.Black, CacheText:=True)
         Else
             ClearActionMsg(Index)
         End If
